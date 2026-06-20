@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Student — Dashboard{% endblock %}
+{% block body %}
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">🏫 {{ school.name if school else 'SchoolPortal' }}</div>
+      <div class="logo-sub">Student Portal</div>
+    </div>
+    <span class="sidebar-role-badge">Student</span>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="#" class="nav-item active">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Dashboard
+      </a>
+      <div class="nav-section-label">Academics</div>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253"/></svg>
+        My Subjects
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+        Results
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7"/></svg>
+        Fee Status
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar">{{ full_name[0] | upper }}</div>
+        <div><div class="user-name">{{ full_name }}</div></div>
+      </div>
+      <a href="{{ url_for('auth.logout') }}"><button class="logout-btn">Sign Out</button></a>
+    </div>
+  </aside>
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">My Dashboard</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      <div class="welcome-banner">
+        <div class="welcome-title">Hi, {{ full_name }} 👋</div>
+        <div class="welcome-sub">{{ school.name if school else '' }} — Have a great day of learning!</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Subjects</div><div class="stat-value">—</div></div>
+        <div class="stat-card green"><div class="stat-label">Attendance</div><div class="stat-value">—%</div></div>
+        <div class="stat-card yellow"><div class="stat-label">Fee Status</div><div class="stat-value">—</div></div>
+      </div>
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">My Subjects</div></div>
+        <div class="section-body" style="color:var(--gray-400);text-align:center;padding:40px;">Subject and results features coming soon.</div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Parent — Dashboard{% endblock %}
+{% block body %}
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">🏫 {{ school.name if school else 'SchoolPortal' }}</div>
+      <div class="logo-sub">Parent Portal</div>
+    </div>
+    <span class="sidebar-role-badge">Parent</span>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="#" class="nav-item active">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Dashboard
+      </a>
+      <div class="nav-section-label">My Children</div>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        Child Profile
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Progress Reports
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1"/></svg>
+        Fee Payments
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar">{{ full_name[0] | upper }}</div>
+        <div><div class="user-name">{{ full_name }}</div></div>
+      </div>
+      <a href="{{ url_for('auth.logout') }}"><button class="logout-btn">Sign Out</button></a>
+    </div>
+  </aside>
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">Parent Dashboard</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      <div class="welcome-banner">
+        <div class="welcome-title">Welcome, {{ full_name }} 👋</div>
+        <div class="welcome-sub">{{ school.name if school else '' }} — Track your child's progress here.</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Children Enrolled</div><div class="stat-value">—</div></div>
+        <div class="stat-card green"><div class="stat-label">Attendance</div><div class="stat-value">—%</div></div>
+        <div class="stat-card yellow"><div class="stat-label">Fees Due</div><div class="stat-value">—</div></div>
+      </div>
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Children Overview</div></div>
+        <div class="section-body" style="color:var(--gray-400);text-align:center;padding:40px;">Child linking and progress features coming soon.</div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

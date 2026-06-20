@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Accountant — Dashboard{% endblock %}
+{% block body %}
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">🏫 {{ school.name if school else 'SchoolPortal' }}</div>
+      <div class="logo-sub">Finance Panel</div>
+    </div>
+    <span class="sidebar-role-badge">Accountant</span>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="#" class="nav-item active">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        Dashboard
+      </a>
+      <div class="nav-section-label">Finance</div>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Fee Records
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Reports
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar">{{ full_name[0] | upper }}</div>
+        <div><div class="user-name">{{ full_name }}</div></div>
+      </div>
+      <a href="{{ url_for('auth.logout') }}"><button class="logout-btn">Sign Out</button></a>
+    </div>
+  </aside>
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">Finance Dashboard</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      <div class="welcome-banner">
+        <div class="welcome-title">Finance Overview</div>
+        <div class="welcome-sub">Welcome, {{ full_name }}. Manage fees and financial records here.</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card green"><div class="stat-label">Fees Collected</div><div class="stat-value">—</div><div class="stat-desc">This month</div></div>
+        <div class="stat-card red"><div class="stat-label">Pending Dues</div><div class="stat-value">—</div><div class="stat-desc">Outstanding</div></div>
+        <div class="stat-card"><div class="stat-label">Total Students</div><div class="stat-value">{{ students_count }}</div></div>
+        <div class="stat-card yellow"><div class="stat-label">Unpaid</div><div class="stat-value">—</div><div class="stat-desc">Students with dues</div></div>
+      </div>
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Recent Transactions</div></div>
+        <div class="section-body" style="color:var(--gray-400);text-align:center;padding:40px;">No transactions yet. Fee management features coming soon.</div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

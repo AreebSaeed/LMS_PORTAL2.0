@@ -1,0 +1,43 @@
+body.auth-page {
+  background: var(--navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.login-card {
+  background: var(--white);
+  border-radius: 16px;
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+}
+
+.login-logo { font-size: 22px; font-weight: 800; color: var(--navy); margin-bottom: 4px; }
+.login-sub  { font-size: 13px; color: var(--gray-400); margin-bottom: 36px; }
+
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.form-input {
+  width: 100%; padding: 10px 14px;
+  border: 1.5px solid var(--gray-200); border-radius: 8px;
+  font-size: 14px; font-family: inherit;
+  transition: border 0.15s;
+}
+.form-input:focus { outline: none; border-color: var(--blue); }
+
+.submit-btn {
+  width: 100%; padding: 12px;
+  background: var(--navy); color: var(--white);
+  border-radius: 8px; font-size: 15px; font-weight: 700;
+  margin-top: 8px; transition: background 0.15s;
+}
+.submit-btn:hover { background: var(--blue); }
+
+.flash-error {
+  background: #FEE2E2; color: #991B1B;
+  padding: 10px 14px; border-radius: 8px;
+  font-size: 13px; margin-bottom: 20px;
+}

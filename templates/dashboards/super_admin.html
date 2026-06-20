@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Super Admin — School Portal{% endblock %}
+{% block body %}
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">🏫 SchoolPortal</div>
+      <div class="logo-sub">Management Console</div>
+    </div>
+    <span class="sidebar-role-badge">Super Admin</span>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="#" class="nav-item active">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Dashboard
+      </a>
+      <div class="nav-section-label">Schools</div>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        All Schools
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Add School
+      </a>
+      <div class="nav-section-label">Users</div>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        All Users
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar">{{ full_name[0] | upper }}</div>
+        <div><div class="user-name">{{ full_name }}</div></div>
+      </div>
+      <a href="{{ url_for('auth.logout') }}"><button class="logout-btn">Sign Out</button></a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">Dashboard</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      <div class="welcome-banner">
+        <div class="welcome-title">Welcome back, {{ full_name }} 👋</div>
+        <div class="welcome-sub">Here's an overview of all schools in the system.</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card navy">
+          <div class="stat-label">Total Schools</div>
+          <div class="stat-value">{{ total_schools }}</div>
+          <div class="stat-desc">Registered institutions</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Active</div>
+          <div class="stat-value">{{ active_schools }}</div>
+          <div class="stat-desc">Currently operating</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-label">Inactive</div>
+          <div class="stat-value">{{ inactive_schools }}</div>
+          <div class="stat-desc">Not yet active</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">Disabled</div>
+          <div class="stat-value">{{ disabled_schools }}</div>
+          <div class="stat-desc">Access suspended</div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">All Schools</div>
+          <button class="action-btn btn-primary">+ Add School</button>
+        </div>
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>School Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for school in schools %}
+              <tr>
+                <td><strong>{{ school.name }}</strong></td>
+                <td>{{ school.email or '—' }}</td>
+                <td>{{ school.phone or '—' }}</td>
+                <td><span class="badge badge-{{ school.status }}">{{ school.status }}</span></td>
+                <td>{{ school.created_at[:10] }}</td>
+                <td style="display:flex;gap:8px;">
+                  <button class="action-btn btn-outline" style="padding:5px 12px;font-size:12px;">Edit</button>
+                  <button class="action-btn btn-danger"  style="padding:5px 12px;font-size:12px;">Disable</button>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="6" style="text-align:center;color:var(--gray-400);padding:32px;">
+                  No schools added yet. Click "+ Add School" to get started.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}
