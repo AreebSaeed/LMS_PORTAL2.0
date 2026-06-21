@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "teacher_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% if todays_schedule %}
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Today's Schedule</div></div>
+        <div class="section-body">
+          {% for slot in todays_schedule %}
+          <div class="schedule-slot">
+            <div>
+              <div class="list-item-title">{{ slot.subject_info.name if slot.subject_info else '—' }}</div>
+              <div class="list-item-meta">{{ slot.class_info.name if slot.class_info else '—' }} · Room {{ slot.room or '—' }}</div>
+            </div>
+            <div class="schedule-time">{{ slot.start_time[:5] }} – {{ slot.end_time[:5] }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Weekly Timetable</div></div>
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead><tr><th>Day</th><th>Time</th><th>Subject</th><th>Class</th><th>Room</th></tr></thead>
+            <tbody>
+              {% for slot in timetable %}
+              <tr>
+                <td>{{ slot.day_of_week|capitalize }}</td>
+                <td>{{ slot.start_time[:5] if slot.start_time else '—' }} – {{ slot.end_time[:5] if slot.end_time else '—' }}</td>
+                <td>{{ slot.subject_info.name if slot.subject_info else '—' }}</td>
+                <td>{{ slot.class_info.name if slot.class_info else '—' }}{% if slot.class_info and slot.class_info.section %} ({{ slot.class_info.section }}){% endif %}</td>
+                <td>{{ slot.room or '—' }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="empty-state">No timetable slots. Contact admin to set up your schedule.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

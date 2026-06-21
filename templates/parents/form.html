@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — {{ school.name if school else 'School Portal' }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/students.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parents.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">{{ page_title }}</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="POST" action="{{ form_action }}" class="student-form">
+        <div class="form-grid">
+          <div class="section-card">
+            <div class="section-header"><div class="section-title">Parent / Guardian Profile</div></div>
+            <div class="section-body form-grid-2">
+              <div class="form-group full-width">
+                <label class="form-label" for="full_name">Parent Name *</label>
+                <input class="form-input" id="full_name" name="full_name" required value="{{ parent.full_name if parent else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="relation">Relation</label>
+                <select class="form-input" id="relation" name="relation">
+                  {% for r in relations %}
+                  <option value="{{ r }}" {% if (parent and parent.relation == r) or (not parent and r == 'guardian') %}selected{% endif %}>{{ r|capitalize }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="cnic">CNIC</label>
+                <input class="form-input" id="cnic" name="cnic" value="{{ parent.cnic if parent else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="phone">Phone Number</label>
+                <input class="form-input" id="phone" name="phone" value="{{ parent.phone if parent else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="whatsapp">WhatsApp Number</label>
+                <input class="form-input" id="whatsapp" name="whatsapp" value="{{ parent.whatsapp if parent else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="email">Email</label>
+                <input class="form-input" type="email" id="email" name="email" value="{{ parent.email if parent else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="occupation">Occupation</label>
+                <input class="form-input" id="occupation" name="occupation" value="{{ parent.occupation if parent else '' }}" />
+              </div>
+              <div class="form-group full-width">
+                <label class="form-label" for="address">Address</label>
+                <textarea class="form-input" id="address" name="address" rows="2">{{ parent.address if parent else '' }}</textarea>
+              </div>
+              <div class="form-group">
+                <label class="role-toggle">
+                  <input type="checkbox" name="is_active" {% if not parent or parent.is_active %}checked{% endif %} />
+                  <span>Active record</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-header"><div class="section-title">Link Children</div></div>
+            <div class="section-body">
+              <p class="field-hint">Select one or more students linked to this parent/guardian.</p>
+              {% if all_students %}
+              <div class="checkbox-list">
+                {% for s in all_students %}
+                <label class="checkbox-item">
+                  <input type="checkbox" name="student_ids" value="{{ s.id }}" {% if s.id in linked_ids %}checked{% endif %} />
+                  <span>{{ s.full_name }} — {{ s.admission_number }}{% if s.class_grade %} ({{ s.class_grade }}{% if s.section %}-{{ s.section }}{% endif %}){% endif %}</span>
+                </label>
+                {% endfor %}
+              </div>
+              {% else %}
+              <div class="empty-state">No students in this school yet. <a href="{{ url_for('students.add_student') }}">Add students first</a>.</div>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if not parent or not parent.login_enabled %}
+          <div class="section-card">
+            <div class="section-header"><div class="section-title">Parent Login Access</div></div>
+            <div class="section-body form-grid-2">
+              <div class="form-group full-width">
+                <label class="role-toggle">
+                  <input type="checkbox" id="enable_login" name="enable_login" />
+                  <span>Enable portal login for this parent</span>
+                </label>
+                <p class="field-hint">Creates a Supabase Auth account with role <strong>parent</strong>.</p>
+              </div>
+              <div class="form-group login-fields" id="login-fields" hidden>
+                <label class="form-label" for="login_email">Login Email</label>
+                <input class="form-input" type="email" id="login_email" name="login_email" placeholder="Uses profile email if blank" />
+              </div>
+              <div class="form-group login-fields" hidden>
+                <label class="form-label" for="login_password">Initial Password</label>
+                <input class="form-input" type="password" id="login_password" name="login_password" minlength="6" />
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="action-btn btn-primary">Save Parent</button>
+          <a href="{{ url_for('parents.list_parents') }}" class="action-btn btn-outline">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
+{% endblock %}
+{% block extra_js %}
+  <script src="{{ url_for('static', filename='js/parents.js') }}"></script>
+{% endblock %}

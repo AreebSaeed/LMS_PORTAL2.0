@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/student_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "student_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <div class="welcome-banner">
+        <div class="welcome-title">Hi, {{ full_name }} 👋</div>
+        <div class="welcome-sub">{{ school.name if school else '' }} — Class {{ student.class_grade or '—' }}{% if student.section %}-{{ student.section }}{% endif %} · Roll {{ student.roll_number or '—' }}</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Subjects</div><div class="stat-value">{{ subject_count }}</div></div>
+        <div class="stat-card green"><div class="stat-label">Attendance (Month)</div><div class="stat-value">{{ attendance_summary.attendance_pct }}%</div></div>
+        <div class="stat-card yellow"><div class="stat-label">Pending Homework</div><div class="stat-value">{{ pending_homework_count }}</div></div>
+        <div class="stat-card {% if fee_summary.status == 'pending' %}red{% else %}navy{% endif %}"><div class="stat-label">Fee Status</div><div class="stat-value">{% if fee_summary.status == 'pending' %}Due{% else %}Clear{% endif %}</div></div>
+      </div>
+
+      <div class="dashboard-grid-2">
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Today's Schedule</div><a href="{{ url_for('student_portal.timetable') }}" class="action-btn btn-outline btn-sm">Full Timetable</a></div>
+          <div class="section-body">
+            {% for slot in todays_schedule %}
+            <div class="schedule-slot">
+              <div><div class="list-item-title">{{ slot.subject_name }}</div><div class="list-item-meta">{{ slot.teacher_name }} · {{ slot.room or '—' }}</div></div>
+              <div class="schedule-time">{{ slot.start_time[:5] }} – {{ slot.end_time[:5] }}</div>
+            </div>
+            {% else %}<div class="empty-state">No classes scheduled today.</div>{% endfor %}
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Upcoming Exams</div><a href="{{ url_for('student_portal.exams') }}" class="action-btn btn-outline btn-sm">View All</a></div>
+          <div class="section-body">
+            {% for exam in upcoming_exams %}
+            <div class="list-item"><div class="list-item-title">{{ exam.title }}</div><div class="list-item-meta">{{ exam.exam_date }}</div></div>
+            {% else %}<div class="empty-state">No upcoming exams.</div>{% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid-2">
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Homework</div><a href="{{ url_for('student_portal.homework') }}" class="action-btn btn-outline btn-sm">View All</a></div>
+          <div class="section-body">
+            {% for hw in homework_list %}
+            <div class="list-item">
+              <div>
+                <div class="list-item-title">{{ hw.title }}</div>
+                <div class="list-item-meta">{{ hw.subject_name }} · Due {{ hw.due_date or '—' }}
+                  {% if hw.submitted %}<span class="badge badge-submitted">Submitted</span>{% elif hw.is_overdue %}<span class="badge badge-overdue">Overdue</span>{% endif %}
+                </div>
+              </div>
+            </div>
+            {% else %}<div class="empty-state">No homework assigned.</div>{% endfor %}
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Latest Result</div><a href="{{ url_for('student_portal.results') }}" class="action-btn btn-outline btn-sm">All Results</a></div>
+          <div class="section-body">
+            {% if latest_result %}
+            <div class="list-item">
+              <div class="list-item-title">{{ latest_result.exam_title }}</div>
+              <div class="list-item-meta">{{ latest_result.marks_obtained or '—' }}/{{ latest_result.max_marks }} {% if latest_result.grade %}({{ latest_result.grade }}){% endif %}</div>
+            </div>
+            {% else %}<div class="empty-state">No results published yet.</div>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Announcements</div><a href="{{ url_for('student_portal.announcements') }}" class="action-btn btn-outline btn-sm">View All</a></div>
+        <div class="section-body">
+          {% for a in announcements[:3] %}
+          <div class="announcement-item"><div class="announcement-title">{{ a.title }}</div><div class="announcement-body">{{ (a.body or '')[:100] }}</div></div>
+          {% endfor %}
+          {% for a in class_announcements[:2] %}
+          <div class="announcement-item"><div class="announcement-title">{{ a.title }} <span class="badge">Class</span></div><div class="announcement-body">{{ (a.body or '')[:100] }}</div></div>
+          {% endfor %}
+          {% if not announcements and not class_announcements %}<div class="empty-state">No announcements.</div>{% endif %}
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

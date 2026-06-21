@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Super Admin — School Portal{% endblock %}
+{% block title %}{{ dashboard_title }} — School Portal{% endblock %}
 {% block body %}
 <div class="app-layout">
   <aside class="sidebar">
     <div class="sidebar-logo">
       <div class="logo-mark">🏫 SchoolPortal</div>
-      <div class="logo-sub">Management Console</div>
+      <div class="logo-sub">SaaS Control Panel</div>
     </div>
     <span class="sidebar-role-badge">Super Admin</span>
     <nav class="sidebar-nav">
@@ -40,7 +40,7 @@
 
   <main class="main-content">
     <div class="topbar">
-      <div class="topbar-title">Dashboard</div>
+      <div class="topbar-title">{{ dashboard_title }}</div>
       <div class="topbar-date" id="current-date"></div>
     </div>
     <div class="page-body">

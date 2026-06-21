@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "parent_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Send Message / Complaint</div></div>
+        <div class="section-body">
+          <form method="POST" class="portal-form">
+            <div class="form-row">
+              <label class="field-label">Subject</label>
+              <input class="form-input" type="text" name="subject" required placeholder="Brief subject" />
+            </div>
+            <div class="form-row">
+              <label class="field-label">Related Child (optional)</label>
+              <select class="form-input" name="student_id">
+                <option value="">General inquiry</option>
+                {% for c in children %}
+                <option value="{{ c.id }}">{{ c.full_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-row">
+              <label class="field-label">Message</label>
+              <textarea class="form-input" name="message" rows="5" required placeholder="Describe your concern or question…"></textarea>
+            </div>
+            <button type="submit" class="action-btn btn-primary">Send to School</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Previous Messages</div></div>
+        <div class="section-body">
+          {% for m in messages_list %}
+          <div class="message-thread">
+            <div class="message-header">
+              <strong>{{ m.subject }}</strong>
+              <span class="badge badge-{{ m.status }}">{{ m.status|replace('_', ' ') }}</span>
+            </div>
+            <p>{{ m.message }}</p>
+            <div class="message-date">{{ m.created_at[:16] if m.created_at else '' }}</div>
+            {% if m.admin_reply %}
+            <div class="admin-reply">
+              <strong>School Reply:</strong> {{ m.admin_reply }}
+              <div class="message-date">{{ m.replied_at[:16] if m.replied_at else '' }}</div>
+            </div>
+            {% endif %}
+          </div>
+          {% else %}
+          <div class="empty-state">No messages sent yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

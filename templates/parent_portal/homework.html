@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "parent_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <div class="section-card">
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead><tr><th>Title</th><th>Type</th><th>Child</th><th>Subject</th><th>Due Date</th><th></th></tr></thead>
+            <tbody>
+              {% for hw in homework_list %}
+              <tr>
+                <td><strong>{{ hw.title }}</strong></td>
+                <td>{{ hw.hw_type_label }}</td>
+                <td>{{ hw.child_name or '—' }}</td>
+                <td>{{ hw.subject_name }}</td>
+                <td>{{ hw.due_date or '—' }}</td>
+                <td><a href="{{ url_for('parent_portal.homework_detail', homework_id=hw.id, student_id=hw.student_id) }}" class="action-btn btn-outline btn-sm">View</a></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="empty-state">No homework assigned for your children's classes.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

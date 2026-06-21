@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% from "parent_portal/_macros.html" import child_selector %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "parent_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">{{ page_title }}</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <div class="welcome-banner">
+        <div class="welcome-title">Welcome, {{ full_name }} 👋</div>
+        <div class="welcome-sub">{{ school.name if school else '' }} — Track your child's progress here.</div>
+      </div>
+
+      {{ child_selector(children, selected_student, url_for('parent_portal.dashboard')) }}
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Children Enrolled</div><div class="stat-value">{{ children_count }}</div></div>
+        <div class="stat-card green"><div class="stat-label">Attendance (This Month)</div><div class="stat-value">{{ attendance_summary.attendance_pct if attendance_summary else 0 }}%</div></div>
+        <div class="stat-card yellow"><div class="stat-label">Pending Fees</div><div class="stat-value">{{ '%.0f'|format(pending_fees) if pending_fees else '0' }}</div></div>
+      </div>
+
+      <div class="dashboard-grid-2">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">Attendance Summary{% if selected_student %} — {{ selected_student.full_name }}{% endif %}</div>
+            <a href="{{ url_for('parent_portal.attendance', student_id=selected_student.id if selected_student else '') }}" class="action-btn btn-outline btn-sm">View All</a>
+          </div>
+          <div class="section-body">
+            {% if attendance_summary and attendance_summary.total %}
+            <div class="attendance-breakdown">
+              <span class="badge badge-present">Present {{ attendance_summary.present }}</span>
+              <span class="badge badge-absent">Absent {{ attendance_summary.absent }}</span>
+              <span class="badge badge-late">Late {{ attendance_summary.late }}</span>
+              <span class="badge badge-leave">Leave {{ attendance_summary.leave }}</span>
+            </div>
+            {% else %}
+            <div class="empty-state">No attendance records this month yet.</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">Latest Result</div>
+            <a href="{{ url_for('parent_portal.results') }}" class="action-btn btn-outline btn-sm">All Results</a>
+          </div>
+          <div class="section-body">
+            {% if latest_result %}
+            <div class="list-item">
+              <div>
+                <div class="list-item-title">{{ latest_result.exam_title }}</div>
+                <div class="list-item-meta">{{ latest_result.student_name }} · {{ latest_result.marks_obtained or '—' }}/{{ latest_result.max_marks }} {% if latest_result.grade %}({{ latest_result.grade }}){% endif %}</div>
+              </div>
+            </div>
+            {% else %}
+            <div class="empty-state">No published results yet.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid-2">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">Latest Homework</div>
+            <a href="{{ url_for('parent_portal.homework') }}" class="action-btn btn-outline btn-sm">View All</a>
+          </div>
+          <div class="section-body">
+            {% for hw in latest_homework %}
+            <div class="list-item">
+              <div>
+                <div class="list-item-title">{{ hw.title }}</div>
+                <div class="list-item-meta">{{ hw.subject_name }} · Due {{ hw.due_date or '—' }}</div>
+              </div>
+            </div>
+            {% else %}
+            <div class="empty-state">No homework assigned.</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">Upcoming Exams</div>
+          </div>
+          <div class="section-body">
+            {% for exam in upcoming_exams %}
+            <div class="list-item">
+              <div>
+                <div class="list-item-title">{{ exam.title }}</div>
+                <div class="list-item-meta">{{ exam.exam_date }}</div>
+              </div>
+            </div>
+            {% else %}
+            <div class="empty-state">No upcoming exams scheduled.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Announcements</div>
+          <a href="{{ url_for('parent_portal.announcements') }}" class="action-btn btn-outline btn-sm">View All</a>
+        </div>
+        <div class="section-body">
+          {% for a in announcements %}
+          <div class="announcement-item">
+            <div class="announcement-title">{{ a.title }}</div>
+            <div class="announcement-body">{{ (a.body or '')[:120] }}{% if a.body and a.body|length > 120 %}…{% endif %}</div>
+            <div class="announcement-date">{{ a.created_at[:10] if a.created_at else '' }}</div>
+          </div>
+          {% else %}
+          <div class="empty-state">No announcements.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

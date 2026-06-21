@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fees.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "fees/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <div class="section-card">
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead><tr><th>Challan</th><th>Student</th><th>Class</th><th>Total</th><th>Paid</th><th>Balance</th><th>Due Date</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {% for f in fees %}
+              <tr>
+                <td>{{ f.challan_number or '—' }}</td>
+                <td>{{ f.student_name }}</td>
+                <td>{{ f.class_label }}</td>
+                <td>{{ '%.2f'|format(f.total_amount) }}</td>
+                <td>{{ '%.2f'|format(f.amount_paid or 0) }}</td>
+                <td>{{ '%.2f'|format(f.balance) }}</td>
+                <td>{{ f.due_date or '—' }}</td>
+                <td><span class="badge badge-{{ f.status }}">{{ f.status }}</span></td>
+                <td><a href="{{ url_for('fees.challan_detail', fee_id=f.id) }}" class="action-btn btn-outline btn-sm">Open</a></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="9" class="empty-state">No records for this report.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

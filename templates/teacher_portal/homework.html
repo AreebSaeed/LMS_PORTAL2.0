@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "teacher_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Assign Homework / Classwork</div></div>
+        <div class="section-body">
+          <form method="POST" enctype="multipart/form-data" class="portal-form">
+            <div class="form-grid-2">
+              <div class="form-row">
+                <label class="field-label">Class & Section</label>
+                <select class="form-input" name="class_id" required>
+                  <option value="">Select class</option>
+                  {% for c in classes %}
+                  <option value="{{ c.id }}">{{ c.name or c.grade }}{% if c.section %} — {{ c.section }}{% endif %}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-row">
+                <label class="field-label">Subject</label>
+                <select class="form-input" name="subject_id">
+                  <option value="">General</option>
+                  {% for s in all_subjects %}
+                  <option value="{{ s.id }}">{{ s.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-row">
+                <label class="field-label">Type</label>
+                <select class="form-input" name="hw_type">
+                  {% for value, label in hw_types %}
+                  <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-row">
+                <label class="field-label">Due Date</label>
+                <input class="form-input" type="date" name="due_date" />
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="field-label">Title</label>
+              <input class="form-input" type="text" name="title" required placeholder="Assignment title" />
+            </div>
+            <div class="form-row">
+              <label class="field-label">Description</label>
+              <textarea class="form-input" name="description" rows="3" placeholder="Instructions for students…"></textarea>
+            </div>
+            <div class="form-row">
+              <label class="field-label">Attachment (file or image)</label>
+              <input class="form-input" type="file" name="attachment" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp" />
+            </div>
+            <div class="form-row">
+              <label class="field-label">
+                <input type="checkbox" name="submission_enabled" checked /> Allow students to submit online
+              </label>
+            </div>
+            <button type="submit" class="action-btn btn-primary">Assign</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Homework History</div></div>
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead><tr><th>Title</th><th>Type</th><th>Class</th><th>Subject</th><th>Due</th><th>Attachment</th><th>Submissions</th><th></th></tr></thead>
+            <tbody>
+              {% for hw in homework_list %}
+              <tr>
+                <td><strong>{{ hw.title }}</strong></td>
+                <td>{{ hw.hw_type_label }}</td>
+                <td>{{ hw.class_label }}{% if hw.section %} — {{ hw.section }}{% endif %}</td>
+                <td>{{ hw.subject_name }}</td>
+                <td>{{ hw.due_date or '—' }}</td>
+                <td>{% if hw.attachment_url %}<a href="{{ hw.attachment_url }}" target="_blank" rel="noopener">Download</a>{% else %}—{% endif %}</td>
+                <td>{{ hw.submission_count }}</td>
+                <td><a href="{{ url_for('teacher_portal.homework_submissions', homework_id=hw.id) }}" class="action-btn btn-outline btn-sm">View</a></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="8" class="empty-state">No homework assigned yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

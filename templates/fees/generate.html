@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fees.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "fees/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Generate Monthly Fee Challans</div></div>
+        <div class="section-body">
+          <form method="POST" class="portal-form">
+            <div class="form-grid-2">
+              <div class="form-row">
+                <label class="field-label">Class</label>
+                <select class="form-input" name="class_id" required>
+                  <option value="">Select class</option>
+                  {% for c in classes %}
+                  <option value="{{ c.id }}">{{ c.name or c.grade }}{% if c.section %} — {{ c.section }}{% endif %}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-row">
+                <label class="field-label">Due Day of Month</label>
+                <input class="form-input" type="number" min="1" max="28" name="due_day" value="10" />
+              </div>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-row"><label class="field-label">Year</label><input class="form-input" type="number" name="year" value="{{ year }}" required /></div>
+              <div class="form-row"><label class="field-label">Month</label><input class="form-input" type="number" min="1" max="12" name="month" value="{{ month }}" required /></div>
+            </div>
+            <div class="form-row"><label class="field-label">Include in challan</label>
+              <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:8px;">
+                <label><input type="checkbox" name="include_tuition" checked /> Tuition</label>
+                <label><input type="checkbox" name="include_transport" checked /> Transport</label>
+                <label><input type="checkbox" name="include_admission" /> Admission</label>
+                <label><input type="checkbox" name="include_annual" /> Annual</label>
+                <label><input type="checkbox" name="include_exam" /> Exam</label>
+              </div>
+            </div>
+            <button type="submit" class="action-btn btn-primary">Generate Challans</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

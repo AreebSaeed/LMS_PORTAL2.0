@@ -1,0 +1,17 @@
+.exam-actions-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 768px) { .form-grid-2 { grid-template-columns: 1fr; } }
+.tab-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.tab-link { padding: 8px 14px; border-radius: var(--radius); background: var(--gray-100); font-weight: 600; font-size: 13px; color: var(--gray-600); }
+.tab-link.active { background: var(--blue); color: white; }
+.result-card-page { max-width: 800px; margin: 24px auto; padding: 0 20px; }
+.result-actions { display: flex; gap: 10px; margin-bottom: 20px; }
+.result-card-print { background: white; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow); }
+.result-header { text-align: center; margin-bottom: 24px; }
+.result-header h1 { font-size: 22px; color: var(--navy); }
+.result-header h2 { font-size: 18px; color: var(--gray-600); margin-top: 4px; }
+.result-student-info { margin-bottom: 20px; font-size: 14px; }
+.result-student-info p { margin: 4px 0; }
+.result-summary { margin-top: 20px; padding: 16px; background: var(--gray-100); border-radius: var(--radius); }
+.result-footer { margin-top: 24px; font-size: 12px; color: var(--gray-400); text-align: center; }
+@media print { .no-print { display: none !important; } .result-card-page { margin: 0; max-width: 100%; } .result-card-print { box-shadow: none; border: none; } }

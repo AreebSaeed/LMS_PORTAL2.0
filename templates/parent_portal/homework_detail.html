@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "parent_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">{{ homework.title }} <span class="badge">{{ homework.hw_type_label }}</span></div>
+          <a href="{{ url_for('parent_portal.homework') }}" class="action-btn btn-outline">Back</a>
+        </div>
+        <div class="section-body">
+          {% if children|length > 1 %}
+          <form method="GET" class="portal-form" style="margin-bottom:16px;">
+            <div class="form-row">
+              <label class="field-label">Viewing for</label>
+              <select class="form-input" name="student_id" onchange="this.form.submit()">
+                {% for c in children %}
+                <option value="{{ c.id }}" {% if student and c.id == student.id %}selected{% endif %}>{{ c.full_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </form>
+          {% endif %}
+
+          <p class="field-hint">Child: {{ student.full_name if student else '—' }}</p>
+          <p>{{ homework.description or 'No description provided.' }}</p>
+          <p class="field-hint">
+            Subject: {{ homework.subject_name }}
+            · Due date: {{ homework.due_date or '—' }}
+            · Assigned: {{ homework.assigned_date or '—' }}
+          </p>
+          {% if homework.attachment_url %}
+          <p><a href="{{ homework.attachment_url }}" target="_blank" rel="noopener" class="action-btn btn-outline btn-sm">Download attachment ({{ homework.attachment_name or 'file' }})</a></p>
+          {% endif %}
+
+          {% if submission %}
+          <div style="margin-top:16px;padding:16px;background:var(--gray-100);border-radius:var(--radius);">
+            <strong>Submitted by student</strong> — {{ submission.status|capitalize }} on {{ submission.submitted_at[:16] if submission.submitted_at else '' }}
+            {% if submission.notes %}<p>{{ submission.notes }}</p>{% endif %}
+            {% if submission.attachment_url %}
+            <p><a href="{{ submission.attachment_url }}" target="_blank" rel="noopener">Submission file</a></p>
+            {% endif %}
+            {% if submission.teacher_comment %}
+            <p><strong>Teacher comment:</strong> {{ submission.teacher_comment }}</p>
+            {% endif %}
+          </div>
+          {% else %}
+          <p class="field-hint" style="margin-top:16px;">Not submitted yet{% if homework.is_overdue %} (overdue){% endif %}.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — {{ school.name if school else 'School Portal' }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/students.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parents.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">{{ page_title }}</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <div class="profile-header">
+        <div class="profile-photo placeholder">{{ parent.full_name[0]|upper }}</div>
+        <div class="profile-info">
+          <h1 class="profile-name">{{ parent.full_name }}</h1>
+          <p class="profile-meta">{{ parent.relation|capitalize }} · {{ parent.phone or 'No phone' }}</p>
+          {% if parent.login_enabled %}
+          <span class="badge badge-active">Login enabled</span>
+          {% endif %}
+          {% if parent.is_active %}
+          <span class="badge badge-active">Active</span>
+          {% else %}
+          <span class="badge badge-inactive">Inactive</span>
+          {% endif %}
+        </div>
+        <div class="profile-actions">
+          <a href="{{ url_for('parents.edit_parent', parent_id=parent.id) }}" class="action-btn btn-primary">Edit</a>
+          <a href="{{ url_for('parents.list_parents') }}" class="action-btn btn-outline">Back to List</a>
+        </div>
+      </div>
+
+      <div class="dashboard-grid-2">
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Contact Information</div></div>
+          <div class="section-body">
+            <div class="info-grid">
+              <div class="info-item"><div class="info-item-label">CNIC</div><div class="info-item-value">{{ parent.cnic or '—' }}</div></div>
+              <div class="info-item"><div class="info-item-label">Phone</div><div class="info-item-value">{{ parent.phone or '—' }}</div></div>
+              <div class="info-item"><div class="info-item-label">WhatsApp</div><div class="info-item-value">{{ parent.whatsapp or '—' }}</div></div>
+              <div class="info-item"><div class="info-item-label">Email</div><div class="info-item-value">{{ parent.email or '—' }}</div></div>
+              <div class="info-item"><div class="info-item-label">Occupation</div><div class="info-item-value">{{ parent.occupation or '—' }}</div></div>
+              <div class="info-item full-span"><div class="info-item-label">Address</div><div class="info-item-value">{{ parent.address or '—' }}</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">Linked Students ({{ linked_students|length }})</div>
+          </div>
+          <div class="section-body">
+            {% if linked_students %}
+              {% for child in linked_students %}
+              <div class="list-item">
+                <div>
+                  <div class="list-item-title">{{ child.full_name }}</div>
+                  <div class="list-item-meta">
+                    Adm: {{ child.admission_number }} · {{ child.class_grade or '—' }}{% if child.section %}-{{ child.section }}{% endif %}
+                    · {{ child.status }}
+                  </div>
+                </div>
+                <a href="{{ url_for('students.view_student', student_id=child.id) }}" class="action-btn btn-outline btn-sm">View</a>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div class="empty-state">No children linked. <a href="{{ url_for('parents.edit_parent', parent_id=parent.id) }}">Link students</a>.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid-2">
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Send Notification</div></div>
+          <div class="section-body">
+            <form method="POST" action="{{ url_for('parents.notify_parent', parent_id=parent.id) }}">
+              <div class="form-group">
+                <label class="form-label" for="subject">Subject</label>
+                <input class="form-input" id="subject" name="subject" required placeholder="Fee reminder, event notice…" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="message">Message</label>
+                <textarea class="form-input" id="message" name="message" rows="4" required placeholder="Notification message to parent…"></textarea>
+              </div>
+              <p class="field-hint">Notification is logged in the system. Email/SMS integration can be added later.</p>
+              <button type="submit" class="action-btn btn-primary">Send Notification</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Portal Login</div></div>
+          <div class="section-body actions-panel">
+            {% if parent.login_enabled %}
+              <p class="field-hint">Login email: <strong>{{ parent.email or '—' }}</strong></p>
+              <form method="POST" action="{{ url_for('parents.reset_password', parent_id=parent.id) }}" class="inline-form">
+                <label class="form-label" for="new_password">Reset Password</label>
+                <div class="inline-row">
+                  <input class="form-input" type="password" id="new_password" name="new_password" minlength="6" required placeholder="New password" />
+                  <button type="submit" class="action-btn btn-primary">Reset</button>
+                </div>
+              </form>
+            {% else %}
+              <form method="POST" action="{{ url_for('parents.enable_login', parent_id=parent.id) }}" class="inline-form">
+                <div class="form-group">
+                  <label class="form-label" for="email">Login Email</label>
+                  <input class="form-input" type="email" id="email" name="email" required value="{{ parent.email or '' }}" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="password">Initial Password</label>
+                  <input class="form-input" type="password" id="password" name="password" minlength="6" required />
+                </div>
+                <button type="submit" class="action-btn btn-primary">Enable Parent Login</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {% if notifications %}
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Notification History</div></div>
+        <div class="section-body">
+          {% for n in notifications %}
+          <div class="list-item">
+            <div>
+              <div class="list-item-title">{{ n.subject }}</div>
+              <div class="list-item-meta">{{ n.message[:120] }}{% if n.message|length > 120 %}…{% endif %} · {{ n.sent_at[:16].replace('T', ' ') }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Record Actions</div></div>
+        <div class="section-body actions-panel">
+          <form method="POST" action="{{ url_for('parents.remove_parent', parent_id=parent.id) }}" onsubmit="return confirm('Deactivate this parent record?');">
+            <input type="hidden" name="action" value="deactivate" />
+            <button type="submit" class="action-btn btn-outline">Deactivate</button>
+          </form>
+          <form method="POST" action="{{ url_for('parents.remove_parent', parent_id=parent.id) }}" onsubmit="return confirm('Permanently delete this parent record?');">
+            <input type="hidden" name="action" value="delete" />
+            <button type="submit" class="action-btn btn-danger">Delete Record</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

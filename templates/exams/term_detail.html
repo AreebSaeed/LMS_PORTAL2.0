@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/exams.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% if use_admin_sidebar %}{% set active_nav = 'exams' %}{% include "partials/admin_sidebar.html" %}
+  {% else %}{% set active_nav = 'exams' %}{% include "teacher_portal/sidebar.html" %}{% endif %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+
+      <div class="exam-actions-bar">
+        <a href="{{ url_for('exams.enter_marks', term_id=term.id) }}" class="action-btn btn-primary">Enter Marks</a>
+        <form method="POST" action="{{ url_for('exams.calculate', term_id=term.id) }}" style="display:inline;"><button type="submit" class="action-btn btn-outline">Calculate Totals & Ranks</button></form>
+        <a href="{{ url_for('exams.class_report', term_id=term.id) }}" class="action-btn btn-outline">Class Report</a>
+        {% if role == 'school_admin' %}
+        <form method="POST" action="{{ url_for('exams.publish', term_id=term.id) }}" style="display:inline;"><button type="submit" class="action-btn btn-outline">Publish Results</button></form>
+        <form method="POST" action="{{ url_for('exams.share_parents', term_id=term.id) }}" style="display:inline;"><button type="submit" class="action-btn btn-outline">Notify Parents</button></form>
+        {% endif %}
+        <a href="{{ url_for('exams.index') }}" class="action-btn btn-outline">Back</a>
+      </div>
+
+      <div class="stats-grid" style="margin-bottom:20px;">
+        <div class="stat-card"><div class="stat-label">Type</div><div class="stat-value" style="font-size:16px;">{{ term.term_type|replace('_',' ')|title }}</div></div>
+        <div class="stat-card"><div class="stat-label">Subjects</div><div class="stat-value">{{ papers|length }}</div></div>
+        <div class="stat-card green"><div class="stat-label">Results</div><div class="stat-value">{{ results_count }}</div></div>
+        <div class="stat-card {% if term.is_published %}green{% else %}yellow{% endif %}"><div class="stat-label">Status</div><div class="stat-value" style="font-size:16px;">{% if term.is_published %}Published{% else %}Draft{% endif %}</div></div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Subjects & Marks Distribution</div></div>
+        <div class="section-body">
+          <form method="POST" action="{{ url_for('exams.add_paper', term_id=term.id) }}" class="inline-form" style="margin-bottom:20px;">
+            <select class="form-input" name="subject_id" required style="width:auto;"><option value="">Add subject</option>{% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select>
+            <input class="form-input" type="number" name="max_marks" value="100" placeholder="Max" style="width:80px;" />
+            <input class="form-input" type="number" name="pass_marks" value="33" placeholder="Pass" style="width:80px;" />
+            <input class="form-input" type="number" name="weight_percent" value="100" placeholder="Weight %" style="width:90px;" />
+            <input class="form-input" type="date" name="exam_date" style="width:auto;" />
+            <button type="submit" class="action-btn btn-primary btn-sm">Add</button>
+          </form>
+          <table class="data-table">
+            <thead><tr><th>Subject</th><th>Max Marks</th><th>Pass</th><th>Weight %</th><th>Date</th><th></th></tr></thead>
+            <tbody>
+              {% for p in papers %}
+              <tr>
+                <td>{{ p.subject_name }}</td><td>{{ p.max_marks }}</td><td>{{ p.pass_marks }}</td><td>{{ p.weight_percent }}%</td><td>{{ p.exam_date or '—' }}</td>
+                <td><form method="POST" action="{{ url_for('exams.remove_paper', paper_id=p.id) }}"><input type="hidden" name="term_id" value="{{ term.id }}" /><button type="submit" class="action-btn btn-outline btn-sm">Remove</button></form></td>
+              </tr>
+              {% else %}<tr><td colspan="6" class="empty-state">Add subjects to this exam term.</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

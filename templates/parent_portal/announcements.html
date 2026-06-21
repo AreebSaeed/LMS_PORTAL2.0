@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "parent_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% for a in announcements %}
+      <div class="section-card announcement-card">
+        <div class="section-header"><div class="section-title">{{ a.title }}</div><span class="announcement-date">{{ a.created_at[:10] if a.created_at else '' }}</span></div>
+        <div class="section-body"><p>{{ a.body or '' }}</p></div>
+      </div>
+      {% else %}
+      <div class="empty-state">No announcements from the school.</div>
+      {% endfor %}
+    </div>
+  </main>
+</div>
+{% endblock %}

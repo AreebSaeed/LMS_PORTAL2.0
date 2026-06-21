@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/students.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/attendance.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% set active_nav = 'attendance' %}
+  {% include "teacher_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <form method="GET" class="search-bar">
+        <input type="hidden" name="class_id" value="{{ class_id }}" />
+        <input class="form-input" type="date" name="date" value="{{ att_date }}" />
+        <button type="submit" class="action-btn btn-outline">View</button>
+        <a href="{{ url_for('attendance.teacher_index') }}" class="action-btn btn-outline">Back</a>
+      </form>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Class Attendance — {{ att_date }}</div></div>
+        <div class="section-body">
+          {% if records %}
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Student</th><th>Roll No.</th><th>Status</th><th>Submitted</th></tr></thead>
+              <tbody>
+                {% for r in records %}
+                <tr>
+                  <td>{{ r.student_name }}</td>
+                  <td>{{ r.student.roll_number if r.student else '—' }}</td>
+                  <td><span class="badge badge-{{ r.status }}">{{ r.status|capitalize }}</span></td>
+                  <td>{% if r.is_submitted %}Yes{% else %}No{% endif %}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="empty-state">No attendance records for this class on the selected date.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

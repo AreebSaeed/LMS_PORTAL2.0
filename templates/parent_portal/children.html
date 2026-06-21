@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "parent_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Linked Children</div></div>
+        <div class="section-body">
+          {% if children %}
+          <div class="children-grid">
+            {% for c in children %}
+            <a href="{{ url_for('parent_portal.child_profile', student_id=c.id) }}" class="child-card">
+              <div class="child-avatar">{{ c.full_name[0]|upper }}</div>
+              <div class="child-name">{{ c.full_name }}</div>
+              <div class="child-meta">{{ c.class_grade or '—' }}{% if c.section %}-{{ c.section }}{% endif %}</div>
+              <div class="child-meta">Adm: {{ c.admission_number }}</div>
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="empty-state">No children linked to your account. Contact the school admin.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

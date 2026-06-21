@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "teacher_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Assigned Classes</div></div>
+        <div class="section-body">
+          {% if assigned_classes %}
+          <div class="class-picker-grid">
+            {% for c in assigned_classes %}
+            <a href="{{ url_for('teacher_portal.students', class_id=c.id) }}" class="class-picker-card">
+              <div class="class-picker-title">{{ c.name or c.grade }}</div>
+              {% if c.section %}<div class="class-picker-sub">Section {{ c.section }}</div>{% endif %}
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="empty-state">No classes assigned. Contact admin.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

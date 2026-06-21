@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/student_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "student_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <div class="section-card"><div class="section-body" style="padding:0;"><table class="data-table"><thead><tr><th>Title</th><th>Type</th><th>Subject</th><th>Due</th><th>Seen</th><th>Status</th><th></th></tr></thead><tbody>
+        {% for hw in homework_list %}
+        <tr>
+          <td><strong>{{ hw.title }}</strong></td>
+          <td>{{ hw.hw_type_label }}</td>
+          <td>{{ hw.subject_name }}</td>
+          <td>{{ hw.due_date or '—' }}</td>
+          <td>{% if hw.seen %}<span class="badge badge-submitted">Seen</span>{% else %}<span class="badge badge-pending">New</span>{% endif %}</td>
+          <td>{% if hw.submitted %}<span class="badge badge-submitted">{{ hw.submission_status }}</span>{% elif hw.is_overdue %}<span class="badge badge-overdue">Overdue</span>{% else %}<span class="badge badge-pending">Pending</span>{% endif %}</td>
+          <td><a href="{{ url_for('student_portal.homework_detail', homework_id=hw.id) }}" class="action-btn btn-outline btn-sm">View</a></td>
+        </tr>
+        {% else %}<tr><td colspan="7" class="empty-state">No homework assigned.</td></tr>{% endfor %}
+      </tbody></table></div></div>
+    </div>
+  </main>
+</div>
+{% endblock %}

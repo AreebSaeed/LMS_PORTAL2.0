@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fees.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="receipt-page">
+  <div class="receipt-actions no-print">
+    <a href="{{ url_for('fees.challan_detail', fee_id=fee.id) }}" class="action-btn btn-outline">Back</a>
+    <button onclick="window.print()" class="action-btn btn-primary">Print</button>
+    {% if receipt %}<a href="{{ url_for('fees.receipt_pdf', fee_id=fee.id) }}" class="action-btn btn-outline">Download PDF</a>{% endif %}
+  </div>
+  <div class="receipt-card">
+    <div class="receipt-header">
+      <h1>{{ school.name if school else 'School' }}</h1>
+      <p>Fee Payment Receipt</p>
+    </div>
+    {% if receipt %}
+    <div class="receipt-meta">
+      <p><strong>Receipt No:</strong> {{ receipt.receipt_number }}</p>
+      <p><strong>Date:</strong> {{ receipt.payment_date[:10] if receipt.payment_date else '' }}</p>
+      <p><strong>Challan No:</strong> {{ fee.challan_number or '—' }}</p>
+    </div>
+    <hr />
+    <div class="receipt-body">
+      <p><strong>Student:</strong> {{ student.full_name if student else fee.student_name }}</p>
+      <p><strong>Admission No:</strong> {{ student.admission_number if student else '—' }}</p>
+      <p><strong>Class:</strong> {{ student.class_grade if student else '—' }}{% if student and student.section %}-{{ student.section }}{% endif %}</p>
+      <hr />
+      <p>Tuition: {{ fee.tuition_fee }} · Transport: {{ fee.transport_fee }} · Admission: {{ fee.admission_fee }}</p>
+      <p>Annual: {{ fee.annual_fee }} · Exam: {{ fee.exam_fee }} · Discount: -{{ fee.discount or 0 }} · Fine: +{{ fee.fine or 0 }}</p>
+      <p><strong>Total Fee:</strong> {{ '%.2f'|format(fee.total_amount) }}</p>
+      <p><strong>Amount Paid (this receipt):</strong> {{ receipt.amount_paid }}</p>
+      <p><strong>Total Paid:</strong> {{ '%.2f'|format(fee.amount_paid or 0) }}</p>
+      <p><strong>Remaining Dues:</strong> {{ '%.2f'|format(fee.balance) }}</p>
+      <p><strong>Payment Method:</strong> {{ receipt.payment_method|replace('_',' ')|title }}</p>
+      <p><strong>Status:</strong> {{ fee.status|capitalize }}</p>
+    </div>
+    {% else %}
+    <p class="empty-state">No receipt available. Record a payment first.</p>
+    {% endif %}
+    <hr />
+    <p class="field-hint" style="text-align:center;">Computer-generated receipt.</p>
+  </div>
+</div>
+{% endblock %}

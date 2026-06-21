@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/student_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "student_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">{{ homework.title }} <span class="badge">{{ homework.hw_type_label }}</span></div>
+          <a href="{{ url_for('student_portal.homework') }}" class="action-btn btn-outline">Back</a>
+        </div>
+        <div class="section-body">
+          <p>{{ homework.description or 'No description provided.' }}</p>
+          <p class="field-hint">
+            Subject: {{ homework.subject_name }}
+            · Due date: {{ homework.due_date or '—' }}
+            {% if homework.seen %} · Marked as seen{% endif %}
+          </p>
+          {% if homework.attachment_url %}
+          <p><a href="{{ homework.attachment_url }}" target="_blank" rel="noopener" class="action-btn btn-outline btn-sm">Download attachment ({{ homework.attachment_name or 'file' }})</a></p>
+          {% endif %}
+
+          {% if submission %}
+          <div style="margin-top:16px;padding:16px;background:var(--gray-100);border-radius:var(--radius);">
+            <strong>Submitted</strong> — {{ submission.status|capitalize }} on {{ submission.submitted_at[:16] if submission.submitted_at else '' }}
+            {% if submission.notes %}<p>{{ submission.notes }}</p>{% endif %}
+            {% if submission.attachment_url %}
+            <p><a href="{{ submission.attachment_url }}" target="_blank" rel="noopener">Your submission file</a></p>
+            {% endif %}
+            {% if submission.teacher_comment %}
+            <p><strong>Teacher comment:</strong> {{ submission.teacher_comment }}</p>
+            {% endif %}
+          </div>
+          {% elif homework.submission_enabled %}
+          <form method="POST" enctype="multipart/form-data" class="portal-form" style="margin-top:20px;">
+            <div class="form-row"><label class="field-label">Submission Notes</label><textarea class="form-input" name="notes" rows="4" placeholder="Describe your work or add notes for your teacher…"></textarea></div>
+            <div class="form-row"><label class="field-label">Attach file (optional)</label><input class="form-input" type="file" name="attachment" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp" /></div>
+            <button type="submit" class="action-btn btn-primary">Submit Homework</button>
+          </form>
+          {% else %}
+          <p class="field-hint" style="margin-top:16px;">Online submission is not enabled for this assignment. Complete it offline as instructed.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

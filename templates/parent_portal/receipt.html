@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="receipt-page">
+  <div class="receipt-actions no-print">
+    <a href="{{ url_for('parent_portal.fees') }}" class="action-btn btn-outline">Back to Fees</a>
+    <button onclick="window.print()" class="action-btn btn-primary">Print Receipt</button>
+    <a href="{{ url_for('parent_portal.fee_receipt', fee_id=fee.id, format='pdf') }}" class="action-btn btn-outline">Download PDF</a>
+  </div>
+  <div class="receipt-card">
+    <div class="receipt-header">
+      <h1>{{ school.name if school else 'School' }}</h1>
+      <p>Fee Payment Receipt</p>
+    </div>
+    <div class="receipt-meta">
+      <div><strong>Receipt No:</strong> {{ receipt.receipt_number }}</div>
+      <div><strong>Date:</strong> {{ receipt.payment_date[:10] if receipt.payment_date else '' }}</div>
+    </div>
+    <hr />
+    <div class="receipt-body">
+      <p><strong>Student:</strong> {{ student.full_name }}</p>
+      <p><strong>Admission No:</strong> {{ student.admission_number }}</p>
+      <p><strong>Class:</strong> {{ student.class_grade or '—' }}{% if student.section %}-{{ student.section }}{% endif %}</p>
+      <p><strong>Amount Paid:</strong> {{ receipt.amount_paid }}</p>
+      <p><strong>Payment Method:</strong> {{ receipt.payment_method|capitalize }}</p>
+      <p><strong>Fee Status:</strong> {{ fee.status|capitalize }}</p>
+    </div>
+    <hr />
+    <p class="receipt-footer">This is a computer-generated receipt. For queries contact the school office.</p>
+  </div>
+</div>
+{% endblock %}

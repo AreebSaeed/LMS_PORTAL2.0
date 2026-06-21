@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/students.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/attendance.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% set active_nav = 'attendance' %}
+  {% include "teacher_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            {{ class_info.name if class_info else class_grade }} {% if section %}— Section {{ section }}{% endif %}
+            · {{ att_date }}
+          </div>
+          {% if submitted %}<span class="badge badge-active">Submitted</span>{% else %}<span class="badge badge-inactive">Draft</span>{% endif %}
+        </div>
+        <div class="section-body">
+          <form method="GET" class="search-bar" style="margin-bottom:20px;">
+            <input type="hidden" name="class_id" value="{{ class_id or '' }}" />
+            <input type="hidden" name="class_grade" value="{{ class_grade or '' }}" />
+            <input type="hidden" name="section" value="{{ section or '' }}" />
+            <input class="form-input" type="date" name="date" value="{{ att_date }}" />
+            <button type="submit" class="action-btn btn-outline">Change Date</button>
+            <a href="{{ url_for('attendance.teacher_index') }}" class="action-btn btn-outline">Back</a>
+          </form>
+
+          {% if students %}
+          <form method="POST">
+            <input type="hidden" name="class_id" value="{{ class_id or '' }}" />
+            <input type="hidden" name="class_grade" value="{{ class_grade or '' }}" />
+            <input type="hidden" name="section" value="{{ section or '' }}" />
+            <input type="hidden" name="date" value="{{ att_date }}" />
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Student</th><th>Roll No.</th><th>Status</th></tr></thead>
+                <tbody>
+                  {% for s in students %}
+                  {% set rec = existing.get(s.id) %}
+                  <tr>
+                    <td><strong>{{ s.full_name }}</strong></td>
+                    <td>{{ s.roll_number or '—' }}</td>
+                    <td>
+                      <select class="form-input status-select" name="status_{{ s.id }}" {% if submitted %}disabled{% endif %}>
+                        {% for st in statuses %}
+                        <option value="{{ st }}" {% if (rec and rec.status == st) or (not rec and st == 'present') %}selected{% endif %}>{{ st|capitalize }}</option>
+                        {% endfor %}
+                      </select>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% if not submitted %}
+            <div class="form-actions">
+              <button type="submit" name="action" value="save" class="action-btn btn-outline">Save Draft</button>
+              <button type="submit" name="action" value="submit" class="action-btn btn-primary">Submit to Admin</button>
+            </div>
+            {% else %}
+            <p class="field-hint" style="margin-top:16px;">Submitted attendance cannot be edited. Contact admin for changes.</p>
+            {% endif %}
+          </form>
+          {% else %}
+          <div class="empty-state">No active students in this class.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

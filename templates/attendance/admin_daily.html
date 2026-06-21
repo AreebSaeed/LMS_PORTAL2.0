@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/students.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/attendance.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% set active_nav = 'attendance' %}
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <form method="GET" class="search-bar">
+        <input class="form-input" type="date" name="date" value="{{ att_date }}" />
+        <select class="form-input" name="class_id">
+          <option value="">All classes</option>
+          {% for c in classes %}<option value="{{ c.id }}" {% if filter_class == c.id %}selected{% endif %}>{{ c.name or c.grade }}{% if c.section %}-{{ c.section }}{% endif %}</option>{% endfor %}
+        </select>
+        <button type="submit" class="action-btn btn-primary">Filter</button>
+        <a href="{{ url_for('attendance.admin_export', date=att_date) }}" class="action-btn btn-outline">Export</a>
+        <a href="{{ url_for('attendance.admin_dashboard') }}" class="action-btn btn-outline">Back</a>
+      </form>
+      <div class="section-card">
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Student</th><th>Class</th><th>Section</th><th>Status</th><th>Submitted</th><th>Admin Edit</th></tr></thead>
+            <tbody>
+              {% for r in records %}
+              <tr>
+                <td>{{ r.date }}</td>
+                <td><a href="{{ url_for('attendance.student_history', student_id=r.student_id) }}">{{ r.student_name }}</a></td>
+                <td>{{ r.student.class_grade if r.student else r.class_grade or '—' }}</td>
+                <td>{{ r.student.section if r.student else r.section or '—' }}</td>
+                <td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
+                <td>{% if r.is_submitted %}Yes{% else %}No{% endif %}</td>
+                <td>
+                  <form method="POST" action="{{ url_for('attendance.admin_edit_record', record_id=r.id) }}" class="inline-edit-form">
+                    <select name="status" class="form-input" style="width:auto;display:inline-block;padding:4px 8px;">
+                      {% for st in statuses %}<option value="{{ st }}" {% if r.status == st %}selected{% endif %}>{{ st }}</option>{% endfor %}
+                    </select>
+                    <button type="submit" class="action-btn btn-outline btn-sm">Update</button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="7" class="empty-state">No records for this date.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

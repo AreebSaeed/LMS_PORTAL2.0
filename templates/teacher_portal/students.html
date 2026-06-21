@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/students.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "teacher_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <form method="GET" class="search-bar">
+        <select class="form-input" name="class_id" onchange="this.form.submit()">
+          {% for c in classes %}
+          <option value="{{ c.id }}" {% if class_id == c.id %}selected{% endif %}>{{ c.name or c.grade }}{% if c.section %} — {{ c.section }}{% endif %}</option>
+          {% endfor %}
+        </select>
+        {% if class_id %}
+        <a href="{{ url_for('attendance.teacher_mark', class_id=class_id) }}" class="action-btn btn-primary">Mark Attendance</a>
+        {% endif %}
+      </form>
+
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">{% if selected_class %}{{ selected_class.name or selected_class.grade }}{% if selected_class.section %} — {{ selected_class.section }}{% endif %}{% else %}Students{% endif %}</div>
+        </div>
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead><tr><th>Name</th><th>Roll No.</th><th>Admission No.</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for s in students %}
+              <tr>
+                <td><strong>{{ s.full_name }}</strong></td>
+                <td>{{ s.roll_number or '—' }}</td>
+                <td>{{ s.admission_number }}</td>
+                <td><span class="badge badge-active">{{ s.status }}</span></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4" class="empty-state">No students in this class.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — {{ school.name if school else 'School Portal' }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/students.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">{{ page_title }}</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="POST" action="{{ form_action }}" enctype="multipart/form-data" class="student-form">
+        <div class="form-grid">
+          <div class="section-card">
+            <div class="section-header"><div class="section-title">Student Information</div></div>
+            <div class="section-body form-grid-2">
+              <div class="form-group full-width">
+                <label class="form-label" for="full_name">Student Name *</label>
+                <input class="form-input" id="full_name" name="full_name" required value="{{ student.full_name if student else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="admission_number">Admission Number *</label>
+                <input class="form-input" id="admission_number" name="admission_number" required value="{{ student.admission_number if student else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="roll_number">Roll Number</label>
+                <input class="form-input" id="roll_number" name="roll_number" value="{{ student.roll_number if student else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="date_of_birth">Date of Birth</label>
+                <input class="form-input" type="date" id="date_of_birth" name="date_of_birth" value="{{ student.date_of_birth if student else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="gender">Gender</label>
+                <select class="form-input" id="gender" name="gender">
+                  <option value="">Select…</option>
+                  {% for g in genders %}
+                  <option value="{{ g }}" {% if student and student.gender == g %}selected{% endif %}>{{ g|capitalize }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="batch_session">Batch / Session</label>
+                <input class="form-input" id="batch_session" name="batch_session" placeholder="e.g. 2024-2025" value="{{ student.batch_session if student else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="status">Status</label>
+                <select class="form-input" id="status" name="status">
+                  {% for st in statuses %}
+                  <option value="{{ st }}" {% if (student and student.status == st) or (not student and st == 'active') %}selected{% endif %}>{{ st|capitalize }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group full-width">
+                <label class="form-label" for="photo">Student Photo</label>
+                <input class="form-input" type="file" id="photo" name="photo" accept="image/*" />
+                {% if student and student.photo_url %}
+                <img src="{{ student.photo_url }}" alt="Current photo" class="current-photo" />
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-header"><div class="section-title">Class Assignment</div></div>
+            <div class="section-body form-grid-2">
+              <div class="form-group full-width">
+                <label class="form-label" for="class_id">Assign to Class</label>
+                <select class="form-input" id="class_id" name="class_id">
+                  <option value="">Select class…</option>
+                  {% for c in classes %}
+                  <option value="{{ c.id }}" {% if student and student.class_id == c.id %}selected{% endif %}>
+                    {{ c.name or c.grade }}{% if c.section %} — {{ c.section }}{% endif %}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="class_grade">Class (manual)</label>
+                <input class="form-input" id="class_grade" name="class_grade" placeholder="e.g. Grade 10" value="{{ student.class_grade if student else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="section">Section</label>
+                <input class="form-input" id="section" name="section" placeholder="e.g. A" value="{{ student.section if student else '' }}" />
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-header"><div class="section-title">Contact & Address</div></div>
+            <div class="section-body form-grid-2">
+              <div class="form-group full-width">
+                <label class="form-label" for="address">Address</label>
+                <textarea class="form-input" id="address" name="address" rows="2">{{ student.address if student else '' }}</textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="contact_number">Contact Number</label>
+                <input class="form-input" id="contact_number" name="contact_number" value="{{ student.contact_number if student else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="emergency_contact">Emergency Contact</label>
+                <input class="form-input" id="emergency_contact" name="emergency_contact" value="{{ student.emergency_contact if student else '' }}" />
+              </div>
+              <div class="form-group full-width">
+                <label class="form-label" for="previous_school">Previous School</label>
+                <input class="form-input" id="previous_school" name="previous_school" value="{{ student.previous_school if student else '' }}" />
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-header"><div class="section-title">Parent / Guardian</div></div>
+            <div class="section-body form-grid-2">
+              <div class="form-group">
+                <label class="form-label" for="parent_name">Parent / Guardian Name</label>
+                <input class="form-input" id="parent_name" name="parent_name" value="{{ student.parent_name if student else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="parent_cnic">Parent CNIC</label>
+                <input class="form-input" id="parent_cnic" name="parent_cnic" value="{{ student.parent_cnic if student else '' }}" />
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-header"><div class="section-title">Documents</div></div>
+            <div class="section-body">
+              <div class="form-group">
+                <label class="form-label" for="documents">Upload Documents</label>
+                <input class="form-input" type="file" id="documents" name="documents" multiple />
+                <p class="field-hint">Birth certificate, transfer letter, etc. (PDF, JPG, PNG)</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="action-btn btn-primary">Save Student</button>
+          <a href="{{ url_for('students.list_students') }}" class="action-btn btn-outline">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
+{% endblock %}

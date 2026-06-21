@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fees.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "fees/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Class-wise Fee Structure</div></div>
+        <div class="section-body">
+          <form method="GET" class="portal-form" style="margin-bottom:20px;">
+            <div class="form-row">
+              <label class="field-label">Select Class (blank = school default)</label>
+              <select class="form-input" name="class_id" onchange="this.form.submit()">
+                <option value="">School Default</option>
+                {% for c in classes %}
+                <option value="{{ c.id }}" {% if selected_class_id == c.id %}selected{% endif %}>{{ c.name or c.grade }}{% if c.section %} — {{ c.section }}{% endif %}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </form>
+
+          <form method="POST" class="portal-form">
+            <input type="hidden" name="class_id" value="{{ selected_class_id or '' }}" />
+            <div class="form-row"><label class="field-label">Structure Name (optional)</label><input class="form-input" type="text" name="name" value="{{ current.name if current else '' }}" /></div>
+            <div class="form-grid-3">
+              <div class="form-row"><label class="field-label">Monthly Tuition Fee</label><input class="form-input" type="number" step="0.01" min="0" name="tuition_fee" value="{{ current.tuition_fee if current else 0 }}" required /></div>
+              <div class="form-row"><label class="field-label">Transport Fee</label><input class="form-input" type="number" step="0.01" min="0" name="transport_fee" value="{{ current.transport_fee if current else 0 }}" /></div>
+              <div class="form-row"><label class="field-label">Admission Fee</label><input class="form-input" type="number" step="0.01" min="0" name="admission_fee" value="{{ current.admission_fee if current else 0 }}" /></div>
+              <div class="form-row"><label class="field-label">Annual Fee</label><input class="form-input" type="number" step="0.01" min="0" name="annual_fee" value="{{ current.annual_fee if current else 0 }}" /></div>
+              <div class="form-row"><label class="field-label">Exam Fee</label><input class="form-input" type="number" step="0.01" min="0" name="exam_fee" value="{{ current.exam_fee if current else 0 }}" /></div>
+            </div>
+            <button type="submit" class="action-btn btn-primary">Save Structure</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Saved Structures</div></div>
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead><tr><th>Class</th><th>Tuition</th><th>Transport</th><th>Admission</th><th>Annual</th><th>Exam</th><th></th></tr></thead>
+            <tbody>
+              {% for s in structures %}
+              <tr>
+                <td>{{ s.class_label }}{% if s.section %} — {{ s.section }}{% endif %}</td>
+                <td>{{ s.tuition_fee }}</td>
+                <td>{{ s.transport_fee }}</td>
+                <td>{{ s.admission_fee }}</td>
+                <td>{{ s.annual_fee }}</td>
+                <td>{{ s.exam_fee }}</td>
+                <td><a href="{{ url_for('fees.structure', class_id=s.class_id or '') }}" class="action-btn btn-outline btn-sm">Edit</a></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="7" class="empty-state">No fee structures yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

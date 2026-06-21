@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/exams.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% set active_nav = 'exams' %}
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div></div>
+    <div class="page-body">
+      <div class="section-card"><div class="section-body" style="padding:0;">
+        <table class="data-table">
+          <thead><tr><th>Exam Term</th><th>Type</th><th>Total</th><th>%</th><th>Grade</th><th>Rank</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for h in history %}
+            <tr>
+              <td>{{ h.term.name if h.term else '—' }}</td>
+              <td>{{ h.term.term_type|replace('_',' ')|title if h.term else '—' }}</td>
+              <td>{{ h.total_obtained }}/{{ h.total_max }}</td>
+              <td>{{ h.percentage }}%</td>
+              <td>{{ h.overall_grade }}</td>
+              <td>#{{ h.class_rank or '—' }}</td>
+              <td>{{ h.result_status }}</td>
+            </tr>
+            {% else %}<tr><td colspan="7" class="empty-state">No exam history.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div></div>
+    </div>
+  </main>
+</div>
+{% endblock %}

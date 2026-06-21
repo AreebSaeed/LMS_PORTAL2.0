@@ -1,0 +1,118 @@
+.child-name {
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.class-picker-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.class-picker-sub {
+  font-size: 12px;
+  color: var(--gray-400);
+  margin-top: 4px;
+}
+.class-picker-grid,
+.children-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.class-picker-card,
+.child-card,
+.subject-card {
+  background: var(--gray-100);
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  text-align: center;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+}
+
+.class-picker-card:hover,
+.child-card:hover,
+.subject-card:hover {
+  background: var(--white);
+  border-color: var(--blue);
+  box-shadow: var(--shadow);
+}
+
+.schedule-slot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.schedule-slot:last-child {
+  border-bottom: none;
+}
+
+.schedule-time {
+  font-size: 13px;
+  color: var(--gray-500);
+  min-width: 100px;
+}
+
+.pending-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.portal-form .form-row {
+  margin-bottom: 16px;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .form-grid-2 { grid-template-columns: 1fr; }
+}
+
+.subject-code {
+  font-size: 12px;
+  color: var(--gray-400);
+  margin-top: 4px;
+}
+
+.badge-submitted { background: #D1FAE5; color: #065F46; }
+.badge-late { background: #FEF3C7; color: #92400E; }
+.badge-graded { background: #DBEAFE; color: #1E40AF; }
+.badge-missing { background: #FEE2E2; color: #991B1B; }
+
+.announcement-item {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.announcement-item:last-child {
+  border-bottom: none;
+}
+
+.announcement-title {
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+
+.announcement-body {
+  font-size: 14px;
+  color: var(--gray-600);
+}
+
+.announcement-date {
+  font-size: 12px;
+  color: var(--gray-400);
+  margin-top: 4px;
+}

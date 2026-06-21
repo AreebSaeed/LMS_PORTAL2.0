@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fees.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "fees/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <div class="stats-grid">
+        <div class="stat-card green"><div class="stat-label">Collected This Month</div><div class="stat-value stat-value-sm">{{ '%.2f'|format(collected_month) }}</div></div>
+        <div class="stat-card red"><div class="stat-label">Pending Dues</div><div class="stat-value stat-value-sm">{{ '%.2f'|format(pending_total) }}</div></div>
+        <div class="stat-card"><div class="stat-label">Paid Records</div><div class="stat-value">{{ paid_count }}</div></div>
+        <div class="stat-card yellow"><div class="stat-label">Unpaid / Defaulters</div><div class="stat-value">{{ unpaid_count }} / {{ defaulter_count }}</div></div>
+      </div>
+
+      <div class="fee-actions-bar">
+        <a href="{{ url_for('fees.structure') }}" class="action-btn btn-primary">Fee Structure</a>
+        <a href="{{ url_for('fees.generate') }}" class="action-btn btn-outline">Generate Challans</a>
+        <a href="{{ url_for('fees.challans') }}" class="action-btn btn-outline">View Challans</a>
+        <form method="POST" action="{{ url_for('fees.remind_all') }}" style="display:inline;">
+          <button type="submit" class="action-btn btn-outline">Remind All Defaulters</button>
+        </form>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Recent Fee Records</div></div>
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead><tr><th>Challan</th><th>Student</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {% for f in recent_transactions %}
+              <tr>
+                <td>{{ f.challan_number or '—' }}</td>
+                <td>{{ f.student_name }}</td>
+                <td>{{ '%.2f'|format(f.total_amount) }}</td>
+                <td>{{ '%.2f'|format(f.amount_paid or 0) }}</td>
+                <td>{{ '%.2f'|format(f.balance) }}</td>
+                <td><span class="badge badge-{{ f.status }}">{{ f.status }}</span></td>
+                <td><a href="{{ url_for('fees.challan_detail', fee_id=f.id) }}" class="action-btn btn-outline btn-sm">Open</a></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="7" class="empty-state">No fee records yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

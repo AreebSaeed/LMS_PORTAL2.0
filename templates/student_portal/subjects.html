@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/student_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "student_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <div class="subjects-grid">
+        {% for s in subjects %}
+        <div class="subject-card"><div class="list-item-title">{{ s.name }}</div>{% if s.code %}<div class="list-item-meta">{{ s.code }}</div>{% endif %}</div>
+        {% else %}<div class="empty-state">No subjects found for your class timetable.</div>{% endfor %}
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

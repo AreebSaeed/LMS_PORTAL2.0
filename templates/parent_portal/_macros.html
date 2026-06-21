@@ -1,0 +1,12 @@
+{% macro child_selector(children, selected_student, base_url) %}
+{% if children|length > 1 %}
+<form method="GET" action="{{ base_url }}" class="child-selector">
+  <label class="field-label">Select child</label>
+  <select name="student_id" class="form-input" onchange="this.form.submit()">
+    {% for c in children %}
+    <option value="{{ c.id }}" {% if selected_student and selected_student.id == c.id %}selected{% endif %}>{{ c.full_name }}</option>
+    {% endfor %}
+  </select>
+</form>
+{% endif %}
+{% endmacro %}

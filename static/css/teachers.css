@@ -1,0 +1,22 @@
+.tag-badge {
+  display: inline-block;
+  background: #EFF6FF;
+  color: #1E40AF;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin: 0 6px 6px 0;
+}
+
+.empty-inline {
+  font-size: 13px;
+  color: var(--gray-400);
+}
+
+.badge-on_leave { background: #FEF3C7; color: #92400E; }
+.badge-terminated { background: #FEE2E2; color: #991B1B; }
+.badge-present { background: #D1FAE5; color: #065F46; }
+.badge-absent { background: #FEE2E2; color: #991B1B; }
+.badge-late { background: #FEF3C7; color: #92400E; }
+.badge-leave { background: #DBEAFE; color: #1E40AF; }

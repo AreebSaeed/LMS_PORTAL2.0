@@ -1,0 +1,19 @@
+.fee-actions-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+@media (max-width: 768px) {
+  .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
+}
+.tab-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.tab-link { padding: 8px 14px; border-radius: var(--radius); background: var(--gray-100); font-weight: 600; font-size: 13px; color: var(--gray-600); text-decoration: none; }
+.tab-link.active { background: var(--blue); color: white; }
+.fee-breakdown { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 16px 0; }
+.fee-breakdown-item { padding: 12px; background: var(--gray-100); border-radius: var(--radius); }
+.fee-breakdown-item .label { font-size: 12px; color: var(--gray-500); }
+.fee-breakdown-item .value { font-size: 18px; font-weight: 700; color: var(--navy); }
+.receipt-page { max-width: 800px; margin: 24px auto; padding: 0 20px; }
+.receipt-actions { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.receipt-card { background: white; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow); }
+.receipt-header { text-align: center; margin-bottom: 20px; }
+.receipt-header h1 { font-size: 22px; color: var(--navy); }
+@media print { .no-print { display: none !important; } .receipt-page { margin: 0; max-width: 100%; } .receipt-card { box-shadow: none; border: none; } }

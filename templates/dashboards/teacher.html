@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Teacher — Dashboard{% endblock %}
+{% block title %}{{ dashboard_title }} — School Portal{% endblock %}
 {% block body %}
 <div class="app-layout">
   <aside class="sidebar">
@@ -19,7 +19,7 @@
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
         Subjects
       </a>
-      <a href="#" class="nav-item">
+      <a href="{{ url_for('attendance.teacher_index') }}" class="nav-item">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
         Attendance
       </a>
@@ -34,7 +34,7 @@
   </aside>
   <main class="main-content">
     <div class="topbar">
-      <div class="topbar-title">Teacher Dashboard</div>
+      <div class="topbar-title">{{ dashboard_title }}</div>
       <div class="topbar-date" id="current-date"></div>
     </div>
     <div class="page-body">

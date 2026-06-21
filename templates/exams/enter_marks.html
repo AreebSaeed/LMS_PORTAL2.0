@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/exams.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% if use_admin_sidebar %}{% set active_nav = 'exams' %}{% include "partials/admin_sidebar.html" %}
+  {% else %}{% set active_nav = 'exams' %}{% include "teacher_portal/sidebar.html" %}{% endif %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+      <a href="{{ url_for('exams.view_term', term_id=term.id) }}" class="action-btn btn-outline" style="margin-bottom:16px;">← Back to Term</a>
+
+      <div class="tab-bar">
+        {% for p in papers %}
+        <a href="{{ url_for('exams.enter_marks', term_id=term.id, paper_id=p.id) }}" class="tab-link {% if selected_paper == p.id %}active{% endif %}">{{ p.subject_name }}</a>
+        {% endfor %}
+      </div>
+
+      {% if papers and selected_paper %}
+      <form method="POST">
+        <input type="hidden" name="paper_id" value="{{ selected_paper }}" />
+        <div class="section-card"><div class="section-body" style="padding:0;overflow-x:auto;">
+          <table class="data-table">
+            <thead><tr><th>Student</th><th>Roll No.</th><th>Marks {% for p in papers %}{% if p.id == selected_paper %}(Max {{ p.max_marks }}){% endif %}{% endfor %}</th></tr></thead>
+            <tbody>
+              {% for s in students %}
+              {% set rec = matrix.get((s.id, selected_paper)) %}
+              <tr>
+                <td>{{ s.full_name }}</td><td>{{ s.roll_number or '—' }}</td>
+                <td><input class="form-input" type="number" step="0.01" name="marks_{{ s.id }}" value="{{ rec.marks_obtained if rec else '' }}" style="width:100px;padding:6px;" /></td>
+              </tr>
+              {% else %}<tr><td colspan="3" class="empty-state">No students in this class.</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </div></div>
+        <button type="submit" class="action-btn btn-primary" style="margin-top:16px;">Save Marks</button>
+      </form>
+      {% else %}
+      <div class="empty-state">Add subjects to the exam term first.</div>
+      {% endif %}
+    </div>
+  </main>
+</div>
+{% endblock %}

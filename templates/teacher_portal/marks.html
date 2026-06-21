@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "teacher_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <form method="GET" class="search-bar">
+        <select class="form-input" name="exam_id" onchange="this.form.submit()">
+          <option value="">Select exam</option>
+          {% for e in exams %}
+          <option value="{{ e.id }}" {% if selected_exam and selected_exam.id == e.id %}selected{% endif %}>{{ e.title }} — {{ e.exam_date }}</option>
+          {% endfor %}
+        </select>
+      </form>
+
+      {% if selected_exam and students %}
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">{{ selected_exam.title }} — Enter Marks</div></div>
+        <div class="section-body">
+          <form method="POST">
+            <input type="hidden" name="exam_id" value="{{ selected_exam.id }}" />
+            <div class="form-row" style="margin-bottom:16px;">
+              <label class="field-label">Max Marks</label>
+              <input class="form-input" type="number" name="max_marks" value="100" style="max-width:120px;" />
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Student</th><th>Roll No.</th><th>Marks</th><th>Grade</th><th>Remarks</th></tr></thead>
+                <tbody>
+                  {% for s in students %}
+                  {% set rec = existing.get(s.id) %}
+                  <tr>
+                    <td>{{ s.full_name }}</td>
+                    <td>{{ s.roll_number or '—' }}</td>
+                    <td><input class="form-input" type="number" step="0.01" name="marks_{{ s.id }}" value="{{ rec.marks_obtained if rec else '' }}" style="width:80px;padding:6px;" /></td>
+                    <td><input class="form-input" type="text" name="grade_{{ s.id }}" value="{{ rec.grade if rec else '' }}" style="width:60px;padding:6px;" /></td>
+                    <td><input class="form-input" type="text" name="remarks_{{ s.id }}" value="{{ rec.remarks if rec else '' }}" style="width:140px;padding:6px;" /></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <div class="form-actions" style="margin-top:16px;">
+              <button type="submit" class="action-btn btn-primary">Save Marks</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% elif selected_exam %}
+      <div class="empty-state">No students found for this exam's class.</div>
+      {% else %}
+      <div class="empty-state">Select an exam to enter marks. Exams must be created by admin for your assigned classes.</div>
+      {% endif %}
+    </div>
+  </main>
+</div>
+{% endblock %}

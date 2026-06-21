@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/students.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/student_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "student_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <div class="profile-header">
+        {% if student.photo_url %}<img src="{{ student.photo_url }}" alt="" class="profile-photo" />{% else %}
+        <div class="profile-photo placeholder">{{ student.full_name[0]|upper }}</div>{% endif %}
+        <div class="profile-info">
+          <h1 class="profile-name">{{ student.full_name }}</h1>
+          <p class="profile-meta">Adm: {{ student.admission_number }} · Roll: {{ student.roll_number or '—' }}</p>
+          <span class="badge badge-active">{{ student.status|capitalize }}</span>
+        </div>
+      </div>
+      <div class="stats-grid" style="margin-bottom:24px;">
+        <div class="stat-card green"><div class="stat-label">Attendance (Month)</div><div class="stat-value">{{ attendance_summary.attendance_pct }}%</div></div>
+        <div class="stat-card"><div class="stat-label">Present</div><div class="stat-value">{{ attendance_summary.present }}</div></div>
+        <div class="stat-card red"><div class="stat-label">Absent</div><div class="stat-value">{{ attendance_summary.absent }}</div></div>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-card"><div class="detail-label">Class</div><div class="detail-value">{{ student.class_grade or '—' }}{% if student.section %}-{{ student.section }}{% endif %}</div></div>
+        <div class="detail-card"><div class="detail-label">Date of Birth</div><div class="detail-value">{{ student.date_of_birth or '—' }}</div></div>
+        <div class="detail-card"><div class="detail-label">Gender</div><div class="detail-value">{{ student.gender|capitalize if student.gender else '—' }}</div></div>
+        <div class="detail-card"><div class="detail-label">Batch / Session</div><div class="detail-value">{{ student.batch_session or '—' }}</div></div>
+        <div class="detail-card"><div class="detail-label">Contact</div><div class="detail-value">{{ student.contact_number or '—' }}</div></div>
+        <div class="detail-card"><div class="detail-label">Emergency</div><div class="detail-value">{{ student.emergency_contact or '—' }}</div></div>
+      </div>
+      {% if academic_history %}
+      <div class="section-card" style="margin-top:24px;">
+        <div class="section-header"><div class="section-title">Academic History</div></div>
+        <div class="section-body">
+          {% for r in academic_history %}
+          <div class="list-item"><div class="list-item-title">{{ r.academic_year }} — {{ r.class_grade or '—' }} {{ r.section or '' }}</div><div class="list-item-meta">{{ r.result_summary or r.notes or '' }}</div></div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </main>
+</div>
+{% endblock %}

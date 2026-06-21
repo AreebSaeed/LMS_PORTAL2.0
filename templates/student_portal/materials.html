@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/student_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "student_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <div class="materials-grid">
+        {% for m in materials %}
+        <div class="material-card">
+          <div class="list-item-title">{{ m.title }}</div>
+          <div class="list-item-meta">{{ m.subject_name }} · {{ m.created_at[:10] if m.created_at else '' }}</div>
+          {% if m.description %}<p style="font-size:13px;margin:8px 0;">{{ m.description[:80] }}</p>{% endif %}
+          {% if m.file_url %}<a href="{{ m.file_url }}" target="_blank" class="action-btn btn-outline btn-sm">Download</a>
+          {% elif m.link_url %}<a href="{{ m.link_url }}" target="_blank" class="action-btn btn-outline btn-sm">Open Link</a>{% endif %}
+        </div>
+        {% else %}<div class="empty-state">No study materials uploaded for your class yet.</div>{% endfor %}
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

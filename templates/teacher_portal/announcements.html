@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "teacher_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Post Class Announcement</div></div>
+        <div class="section-body">
+          <form method="POST" class="portal-form">
+            <div class="form-row">
+              <label class="field-label">Class</label>
+              <select class="form-input" name="class_id">
+                <option value="">All my classes</option>
+                {% for c in classes %}
+                <option value="{{ c.id }}">{{ c.name or c.grade }}{% if c.section %} — {{ c.section }}{% endif %}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-row">
+              <label class="field-label">Title</label>
+              <input class="form-input" type="text" name="title" required />
+            </div>
+            <div class="form-row">
+              <label class="field-label">Message</label>
+              <textarea class="form-input" name="body" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="action-btn btn-primary">Post Announcement</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="dashboard-grid-2">
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">My Class Announcements</div></div>
+          <div class="section-body">
+            {% for a in my_announcements %}
+            <div class="announcement-item">
+              <div class="announcement-title">{{ a.title }}</div>
+              <div class="announcement-body">{{ a.body or '' }}</div>
+              <div class="announcement-date">{{ a.class_label }} · {{ a.created_at[:10] if a.created_at else '' }}</div>
+            </div>
+            {% else %}
+            <div class="empty-state">No class announcements posted yet.</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">School Announcements</div></div>
+          <div class="section-body">
+            {% for a in school_announcements %}
+            <div class="announcement-item">
+              <div class="announcement-title">{{ a.title }}</div>
+              <div class="announcement-body">{{ (a.body or '')[:150] }}</div>
+              <div class="announcement-date">{{ a.created_at[:10] if a.created_at else '' }}</div>
+            </div>
+            {% else %}
+            <div class="empty-state">No school announcements.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

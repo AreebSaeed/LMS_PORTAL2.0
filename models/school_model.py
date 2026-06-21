@@ -1,4 +1,4 @@
-from models.supabase_client import supabase, supabase_admin
+from models.supabase_client import supabase_admin
 
 
 def get_all_schools():
@@ -9,7 +9,7 @@ def get_all_schools():
 
 def get_school_by_id(school_id: str):
     """Fetch a single school by its UUID."""
-    result = supabase.table("schools").select("*").eq("id", school_id).single().execute()
+    result = supabase_admin.table("schools").select("*").eq("id", school_id).single().execute()
     return result.data
 
 

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — {{ school.name if school else 'School Portal' }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parents.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">{{ page_title }}</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">All Parents & Guardians ({{ parents|length }})</div>
+          <a href="{{ url_for('parents.add_parent') }}" class="action-btn btn-primary">+ Add Parent</a>
+        </div>
+        <div class="section-body">
+          <form method="GET" action="{{ url_for('parents.list_parents') }}" class="search-bar">
+            <input class="form-input" type="text" name="q" placeholder="Search name, email, phone, CNIC…" value="{{ query }}" />
+            <button type="submit" class="action-btn btn-primary">Search</button>
+            {% if query %}
+            <a href="{{ url_for('parents.list_parents') }}" class="action-btn btn-outline">Clear</a>
+            {% endif %}
+          </form>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Relation</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>Children</th>
+                  <th>Login</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in parents %}
+                <tr>
+                  <td><strong>{{ p.full_name }}</strong></td>
+                  <td>{{ p.relation|capitalize }}</td>
+                  <td>{{ p.phone or '—' }}</td>
+                  <td>{{ p.email or '—' }}</td>
+                  <td>{{ p.children_count }}</td>
+                  <td>{% if p.login_enabled %}<span class="badge badge-active">Enabled</span>{% else %}<span class="badge badge-inactive">No</span>{% endif %}</td>
+                  <td>{% if p.is_active %}<span class="badge badge-active">Active</span>{% else %}<span class="badge badge-inactive">Inactive</span>{% endif %}</td>
+                  <td class="actions-cell">
+                    <a href="{{ url_for('parents.view_parent', parent_id=p.id) }}" class="action-btn btn-outline btn-sm">View</a>
+                    <a href="{{ url_for('parents.edit_parent', parent_id=p.id) }}" class="action-btn btn-outline btn-sm">Edit</a>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="8" class="empty-state">No parents found. <a href="{{ url_for('parents.add_parent') }}">Add the first parent</a>.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

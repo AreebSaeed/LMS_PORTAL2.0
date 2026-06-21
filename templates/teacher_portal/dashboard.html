@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "teacher_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">{{ page_title }}</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <div class="welcome-banner">
+        <div class="welcome-title">Hello, {{ full_name }} 👋</div>
+        <div class="welcome-sub">{{ school.name if school else '' }} — Your teaching overview for today.</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">My Classes</div><div class="stat-value">{{ class_count }}</div></div>
+        <div class="stat-card green"><div class="stat-label">My Students</div><div class="stat-value">{{ student_count }}</div></div>
+        <div class="stat-card navy"><div class="stat-label">Subjects</div><div class="stat-value">{{ subject_count }}</div></div>
+        <div class="stat-card yellow"><div class="stat-label">Attendance Pending</div><div class="stat-value">{{ attendance_pending|length }}</div></div>
+      </div>
+
+      <div class="dashboard-grid-2">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">Today's Classes</div>
+            <a href="{{ url_for('teacher_portal.timetable') }}" class="action-btn btn-outline btn-sm">Full Timetable</a>
+          </div>
+          <div class="section-body">
+            {% for slot in todays_classes %}
+            <div class="schedule-slot">
+              <div>
+                <div class="list-item-title">{{ slot.subject_info.name if slot.subject_info else 'Subject' }}</div>
+                <div class="list-item-meta">{{ slot.class_info.name if slot.class_info else 'Class' }}{% if slot.class_info and slot.class_info.section %} — {{ slot.class_info.section }}{% endif %} · {{ slot.room or '—' }}</div>
+              </div>
+              <div class="schedule-time">{{ slot.start_time[:5] if slot.start_time else '' }} – {{ slot.end_time[:5] if slot.end_time else '' }}</div>
+            </div>
+            {% else %}
+            <div class="empty-state">No classes scheduled for today.</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">Attendance Pending</div>
+            <a href="{{ url_for('attendance.teacher_index') }}" class="action-btn btn-primary btn-sm">Mark Now</a>
+          </div>
+          <div class="section-body">
+            {% for c in attendance_pending %}
+            <div class="pending-item">
+              <span>{{ c.class_label }}{% if c.section %} — {{ c.section }}{% endif %}</span>
+              <a href="{{ url_for('attendance.teacher_mark', class_id=c.id) }}" class="action-btn btn-outline btn-sm">Mark</a>
+            </div>
+            {% else %}
+            <div class="empty-state">All attendance submitted for today.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid-2">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">Assigned Subjects</div>
+            <a href="{{ url_for('teacher_portal.subjects') }}" class="action-btn btn-outline btn-sm">View All</a>
+          </div>
+          <div class="section-body">
+            {% for s in subjects %}
+            <div class="list-item"><div class="list-item-title">{{ s.name }}</div></div>
+            {% else %}
+            <div class="empty-state">No subjects assigned.</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">Homework Assigned</div>
+            <a href="{{ url_for('teacher_portal.homework') }}" class="action-btn btn-outline btn-sm">Manage</a>
+          </div>
+          <div class="section-body">
+            {% for hw in homework_list %}
+            <div class="list-item">
+              <div>
+                <div class="list-item-title">{{ hw.title }}</div>
+                <div class="list-item-meta">{{ hw.class_label }} · Due {{ hw.due_date or '—' }} · {{ hw.submission_count }} submitted</div>
+              </div>
+            </div>
+            {% else %}
+            <div class="empty-state">No homework assigned yet.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid-2">
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Upcoming Exams</div></div>
+          <div class="section-body">
+            {% for exam in upcoming_exams %}
+            <div class="list-item">
+              <div>
+                <div class="list-item-title">{{ exam.title }}</div>
+                <div class="list-item-meta">{{ exam.exam_date }}</div>
+              </div>
+              <a href="{{ url_for('teacher_portal.marks', exam_id=exam.id) }}" class="action-btn btn-outline btn-sm">Enter Marks</a>
+            </div>
+            {% else %}
+            <div class="empty-state">No upcoming exams.</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">Announcements</div>
+            <a href="{{ url_for('teacher_portal.announcements') }}" class="action-btn btn-outline btn-sm">View All</a>
+          </div>
+          <div class="section-body">
+            {% for a in school_announcements[:3] %}
+            <div class="list-item">
+              <div class="list-item-title">{{ a.title }}</div>
+              <div class="list-item-meta">School · {{ a.created_at[:10] if a.created_at else '' }}</div>
+            </div>
+            {% endfor %}
+            {% for a in class_announcements[:2] %}
+            <div class="list-item">
+              <div class="list-item-title">{{ a.title }}</div>
+              <div class="list-item-meta">Your class · {{ a.created_at[:10] if a.created_at else '' }}</div>
+            </div>
+            {% endfor %}
+            {% if not school_announcements and not class_announcements %}
+            <div class="empty-state">No announcements.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

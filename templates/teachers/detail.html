@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — {{ school.name if school else 'School Portal' }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/students.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/teachers.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">{{ page_title }}</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <div class="profile-header">
+        <div class="profile-photo placeholder">{{ teacher.full_name[0]|upper }}</div>
+        <div class="profile-info">
+          <h1 class="profile-name">{{ teacher.full_name }}</h1>
+          <p class="profile-meta">{{ teacher.designation }} · ID: {{ teacher.employee_id }}</p>
+          <span class="badge badge-{{ teacher.status }}">{{ teacher.status|replace('_', ' ') }}</span>
+          {% if teacher.login_enabled %}<span class="badge badge-active">Login enabled</span>{% endif %}
+        </div>
+        <div class="profile-actions">
+          <a href="{{ url_for('teachers.edit_teacher', teacher_id=teacher.id) }}" class="action-btn btn-primary">Edit</a>
+          <a href="{{ url_for('teachers.list_teachers') }}" class="action-btn btn-outline">Back</a>
+        </div>
+      </div>
+
+      <div class="dashboard-grid-2">
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Profile Details</div></div>
+          <div class="section-body">
+            <div class="info-grid">
+              <div class="info-item"><div class="info-item-label">CNIC</div><div class="info-item-value">{{ teacher.cnic or '—' }}</div></div>
+              <div class="info-item"><div class="info-item-label">Phone</div><div class="info-item-value">{{ teacher.phone or '—' }}</div></div>
+              <div class="info-item"><div class="info-item-label">Email</div><div class="info-item-value">{{ teacher.email or '—' }}</div></div>
+              <div class="info-item"><div class="info-item-label">Qualification</div><div class="info-item-value">{{ teacher.qualification or '—' }}</div></div>
+              <div class="info-item"><div class="info-item-label">Joining Date</div><div class="info-item-value">{{ teacher.joining_date or '—' }}</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Assignments</div></div>
+          <div class="section-body">
+            <p class="field-hint" style="margin-bottom:10px;font-weight:600;">Subjects</p>
+            {% if subjects %}
+              {% for s in subjects %}<span class="tag-badge">{{ s.name }}</span>{% endfor %}
+            {% else %}<span class="empty-inline">None assigned</span>{% endif %}
+            <p class="field-hint" style="margin:16px 0 10px;font-weight:600;">Classes</p>
+            {% if classes %}
+              {% for c in classes %}<span class="tag-badge">{{ c.name or c.grade }}{% if c.section %}-{{ c.section }}{% endif %}</span>{% endfor %}
+            {% else %}<span class="empty-inline">None assigned</span>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid-2">
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Timetable</div></div>
+          <div class="section-body">
+            {% if timetable %}
+            <table class="data-table">
+              <thead><tr><th>Day</th><th>Time</th><th>Class</th><th>Subject</th><th>Room</th></tr></thead>
+              <tbody>
+                {% for slot in timetable %}
+                <tr>
+                  <td>{{ slot.day_of_week|capitalize }}</td>
+                  <td>{{ slot.start_time[:5] }} – {{ slot.end_time[:5] }}</td>
+                  <td>{% if slot.class_info %}{{ slot.class_info.grade or slot.class_info.name }}{% else %}—{% endif %}</td>
+                  <td>{% if slot.subject_info %}{{ slot.subject_info.name }}{% else %}—{% endif %}</td>
+                  <td>{{ slot.room or '—' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">No timetable slots yet.</div>
+            {% endif %}
+            <form method="POST" action="{{ url_for('teachers.add_timetable', teacher_id=teacher.id) }}" class="inline-form" style="margin-top:20px;">
+              <p class="field-hint" style="font-weight:600;margin-bottom:10px;">Add Timetable Slot</p>
+              <div class="form-grid-2">
+                <select class="form-input" name="day_of_week" required>
+                  <option value="">Day…</option>
+                  {% for d in days_of_week %}<option value="{{ d }}">{{ d|capitalize }}</option>{% endfor %}
+                </select>
+                <input class="form-input" type="time" name="start_time" required />
+                <input class="form-input" type="time" name="end_time" required />
+                <select class="form-input" name="class_id">
+                  <option value="">Class…</option>
+                  {% for c in all_classes %}<option value="{{ c.id }}">{{ c.name or c.grade }}{% if c.section %}-{{ c.section }}{% endif %}</option>{% endfor %}
+                </select>
+                <select class="form-input" name="subject_id">
+                  <option value="">Subject…</option>
+                  {% for s in all_subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                </select>
+                <input class="form-input" name="room" placeholder="Room" />
+              </div>
+              <button type="submit" class="action-btn btn-primary" style="margin-top:12px;">Add Slot</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Staff Attendance</div></div>
+          <div class="section-body">
+            {% if attendance %}
+            <table class="data-table">
+              <thead><tr><th>Date</th><th>Status</th><th>In</th><th>Out</th></tr></thead>
+              <tbody>
+                {% for a in attendance %}
+                <tr>
+                  <td>{{ a.date }}</td>
+                  <td><span class="badge badge-{{ a.status }}">{{ a.status }}</span></td>
+                  <td>{{ a.check_in[:5] if a.check_in else '—' }}</td>
+                  <td>{{ a.check_out[:5] if a.check_out else '—' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">No attendance records yet.</div>
+            {% endif %}
+            <form method="POST" action="{{ url_for('teachers.add_attendance', teacher_id=teacher.id) }}" class="inline-form" style="margin-top:20px;">
+              <p class="field-hint" style="font-weight:600;margin-bottom:10px;">Record Attendance</p>
+              <div class="form-grid-2">
+                <input class="form-input" type="date" name="date" required />
+                <select class="form-input" name="status">
+                  <option value="present">Present</option>
+                  <option value="absent">Absent</option>
+                  <option value="late">Late</option>
+                  <option value="leave">Leave</option>
+                </select>
+                <input class="form-input" type="time" name="check_in" />
+                <input class="form-input" type="time" name="check_out" />
+              </div>
+              <button type="submit" class="action-btn btn-primary" style="margin-top:12px;">Save Attendance</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Login Account</div></div>
+        <div class="section-body actions-panel">
+          {% if teacher.login_enabled %}
+            <p class="field-hint">Login email: <strong>{{ teacher.email }}</strong></p>
+            <form method="POST" action="{{ url_for('teachers.reset_password', teacher_id=teacher.id) }}" class="inline-form">
+              <div class="inline-row">
+                <input class="form-input" type="password" name="new_password" minlength="6" required placeholder="New password" />
+                <button type="submit" class="action-btn btn-primary">Reset Password</button>
+              </div>
+            </form>
+          {% else %}
+            <form method="POST" action="{{ url_for('teachers.enable_login', teacher_id=teacher.id) }}" class="inline-form">
+              <div class="form-grid-2">
+                <input class="form-input" type="email" name="email" required value="{{ teacher.email or '' }}" placeholder="Login email" />
+                <input class="form-input" type="password" name="password" minlength="6" required placeholder="Initial password" />
+              </div>
+              <button type="submit" class="action-btn btn-primary" style="margin-top:12px;">Enable Login</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Account Actions</div></div>
+        <div class="section-body actions-panel">
+          <form method="POST" action="{{ url_for('teachers.remove_teacher', teacher_id=teacher.id) }}" onsubmit="return confirm('Deactivate this staff account?');">
+            <input type="hidden" name="action" value="deactivate" />
+            <button type="submit" class="action-btn btn-outline">Deactivate Staff</button>
+          </form>
+          <form method="POST" action="{{ url_for('teachers.remove_teacher', teacher_id=teacher.id) }}" onsubmit="return confirm('Delete permanently?');">
+            <input type="hidden" name="action" value="delete" />
+            <button type="submit" class="action-btn btn-danger">Delete Record</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

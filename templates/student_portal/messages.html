@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/student_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "student_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+      <div class="section-card"><div class="section-header"><div class="section-title">Contact School</div></div><div class="section-body">
+        <form method="POST" class="portal-form">
+          <div class="form-row"><label class="field-label">Subject</label><input class="form-input" type="text" name="subject" required /></div>
+          <div class="form-row"><label class="field-label">Message</label><textarea class="form-input" name="message" rows="5" required placeholder="Ask a question or report an issue…"></textarea></div>
+          <button type="submit" class="action-btn btn-primary">Send Message</button>
+        </form>
+      </div></div>
+      <div class="section-card"><div class="section-header"><div class="section-title">Previous Messages</div></div><div class="section-body">
+        {% for m in messages_list %}
+        <div class="message-thread"><div><strong>{{ m.subject }}</strong> <span class="badge badge-{{ m.status }}">{{ m.status|replace('_',' ') }}</span></div><p>{{ m.message }}</p>
+          {% if m.admin_reply %}<div class="admin-reply"><strong>Reply:</strong> {{ m.admin_reply }}</div>{% endif %}
+        </div>
+        {% else %}<div class="empty-state">No messages sent yet.</div>{% endfor %}
+      </div></div>
+    </div>
+  </main>
+</div>
+{% endblock %}

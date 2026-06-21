@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/student_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "student_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <div class="stats-grid" style="margin-bottom:24px;">
+        <div class="stat-card green"><div class="stat-label">Average</div><div class="stat-value">{{ grade_summary.average_pct }}%</div></div>
+        <div class="stat-card"><div class="stat-label">Exams</div><div class="stat-value">{{ grade_summary.total_exams }}</div></div>
+        <div class="stat-card navy"><div class="stat-label">Highest</div><div class="stat-value">{% if grade_summary.highest %}{{ grade_summary.highest|round|int }}%{% else %}—{% endif %}</div></div>
+      </div>
+      <div class="section-card"><div class="section-body" style="padding:0;"><table class="data-table"><thead><tr><th>Exam</th><th>Date</th><th>Marks</th><th>Grade</th><th>Remarks</th></tr></thead><tbody>
+        {% for r in results %}<tr><td>{{ r.exam_title }}</td><td>{{ r.exam.exam_date if r.exam else '—' }}</td><td>{{ r.marks_obtained or '—' }}/{{ r.max_marks }}</td><td>{{ r.grade or '—' }}</td><td>{{ r.remarks or '—' }}</td></tr>
+        {% else %}<tr><td colspan="5" class="empty-state">No results published yet.</td></tr>{% endfor %}
+      </tbody></table></div></div>
+    </div>
+  </main>
+</div>
+{% endblock %}

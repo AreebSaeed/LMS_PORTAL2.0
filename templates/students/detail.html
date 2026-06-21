@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — {{ school.name if school else 'School Portal' }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/students.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">{{ page_title }}</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <div class="profile-header">
+        {% if student.photo_url %}
+        <img src="{{ student.photo_url }}" alt="{{ student.full_name }}" class="profile-photo" />
+        {% else %}
+        <div class="profile-photo placeholder">{{ student.full_name[0]|upper }}</div>
+        {% endif %}
+        <div class="profile-info">
+          <h1 class="profile-name">{{ student.full_name }}</h1>
+          <p class="profile-meta">Admission: {{ student.admission_number }} · Roll: {{ student.roll_number or '—' }}</p>
+          <span class="badge badge-{{ student.status }}">{{ student.status }}</span>
+        </div>
+        <div class="profile-actions">
+          <a href="{{ url_for('students.edit_student', student_id=student.id) }}" class="action-btn btn-primary">Edit</a>
+          <a href="{{ url_for('exams.student_history', student_id=student.id) }}" class="action-btn btn-outline">Exam History</a>
+          <a href="{{ url_for('students.list_students') }}" class="action-btn btn-outline">Back to List</a>
+        </div>
+      </div>
+
+      <div class="dashboard-grid-2">
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Student Details</div></div>
+          <div class="section-body">
+            <div class="info-grid">
+              <div class="info-item"><div class="info-item-label">Date of Birth</div><div class="info-item-value">{{ student.date_of_birth or '—' }}</div></div>
+              <div class="info-item"><div class="info-item-label">Gender</div><div class="info-item-value">{{ student.gender|capitalize if student.gender else '—' }}</div></div>
+              <div class="info-item"><div class="info-item-label">Class</div><div class="info-item-value">{{ student.class_grade or '—' }}</div></div>
+              <div class="info-item"><div class="info-item-label">Section</div><div class="info-item-value">{{ student.section or '—' }}</div></div>
+              <div class="info-item"><div class="info-item-label">Batch / Session</div><div class="info-item-value">{{ student.batch_session or '—' }}</div></div>
+              <div class="info-item"><div class="info-item-label">Contact</div><div class="info-item-value">{{ student.contact_number or '—' }}</div></div>
+              <div class="info-item"><div class="info-item-label">Emergency Contact</div><div class="info-item-value">{{ student.emergency_contact or '—' }}</div></div>
+              <div class="info-item"><div class="info-item-label">Previous School</div><div class="info-item-value">{{ student.previous_school or '—' }}</div></div>
+              <div class="info-item full-span"><div class="info-item-label">Address</div><div class="info-item-value">{{ student.address or '—' }}</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Parent / Guardian</div></div>
+          <div class="section-body">
+            <div class="info-grid">
+              <div class="info-item"><div class="info-item-label">Name</div><div class="info-item-value">{{ student.parent_name or '—' }}</div></div>
+              <div class="info-item"><div class="info-item-label">CNIC</div><div class="info-item-value">{{ student.parent_cnic or '—' }}</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid-2">
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Documents</div></div>
+          <div class="section-body">
+            {% if documents %}
+              {% for doc in documents %}
+              <div class="list-item">
+                <div>
+                  <div class="list-item-title">{{ doc.file_name }}</div>
+                  <div class="list-item-meta">{{ doc.uploaded_at[:10] }} · {{ doc.doc_type }}</div>
+                </div>
+                <a href="{{ doc.file_url }}" target="_blank" class="action-btn btn-outline btn-sm">Open</a>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div class="empty-state">No documents uploaded yet.</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Academic History</div></div>
+          <div class="section-body">
+            {% if academic_history %}
+              {% for record in academic_history %}
+              <div class="list-item">
+                <div>
+                  <div class="list-item-title">{{ record.academic_year }} — {{ record.class_grade or '—' }} {{ record.section or '' }}</div>
+                  <div class="list-item-meta">
+                    {% if record.result_summary %}{{ record.result_summary }} · {% endif %}
+                    {{ record.notes or '' }} · {{ record.recorded_at[:10] }}
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div class="empty-state">No academic history recorded yet.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid-2">
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Portal Login</div></div>
+          <div class="section-body actions-panel">
+            {% if student.login_enabled or student.user_id %}
+              <p class="field-hint">Login email: <strong>{{ student.email or '—' }}</strong></p>
+              <form method="POST" action="{{ url_for('students.reset_password', student_id=student.id) }}" class="inline-form">
+                <label class="form-label" for="new_password">Reset Password</label>
+                <div class="inline-row">
+                  <input class="form-input" type="password" id="new_password" name="new_password" minlength="6" required placeholder="New password" />
+                  <button type="submit" class="action-btn btn-primary">Reset</button>
+                </div>
+              </form>
+            {% else %}
+              <form method="POST" action="{{ url_for('students.enable_login', student_id=student.id) }}" class="inline-form">
+                <div class="form-group">
+                  <label class="form-label" for="email">Login Email</label>
+                  <input class="form-input" type="email" id="email" name="email" required placeholder="student@email.com" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="password">Initial Password</label>
+                  <input class="form-input" type="password" id="password" name="password" minlength="6" required />
+                </div>
+                <button type="submit" class="action-btn btn-primary">Enable Student Login</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Student Actions</div></div>
+        <div class="section-body actions-panel">
+          <form method="POST" action="{{ url_for('students.set_status', student_id=student.id) }}" class="inline-form">
+            <label class="form-label" for="status_select">Change Status</label>
+            <div class="inline-row">
+              <select class="form-input" id="status_select" name="status">
+                {% for st in statuses %}
+                <option value="{{ st }}" {% if student.status == st %}selected{% endif %}>{{ st|capitalize }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="action-btn btn-primary">Update Status</button>
+            </div>
+          </form>
+          <form method="POST" action="{{ url_for('students.remove_student', student_id=student.id) }}" class="inline-form" onsubmit="return confirm('Deactivate this student?');">
+            <input type="hidden" name="action" value="deactivate" />
+            <button type="submit" class="action-btn btn-outline">Deactivate Student</button>
+          </form>
+          <form method="POST" action="{{ url_for('students.remove_student', student_id=student.id) }}" class="inline-form" onsubmit="return confirm('Permanently delete this student record? This cannot be undone.');">
+            <input type="hidden" name="action" value="delete" />
+            <button type="submit" class="action-btn btn-danger">Delete Record</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

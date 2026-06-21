@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "teacher_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">{{ homework.title }} <span class="badge">{{ homework.hw_type_label }}</span></div>
+          <a href="{{ url_for('teacher_portal.homework') }}" class="action-btn btn-outline">Back</a>
+        </div>
+        <div class="section-body">
+          <p>{{ homework.description or 'No description.' }}</p>
+          <p class="field-hint">
+            Class: {{ homework.class_label }}{% if homework.section %} — {{ homework.section }}{% endif %}
+            · Subject: {{ homework.subject_name }}
+            · Due: {{ homework.due_date or '—' }}
+            · Online submission: {{ 'Enabled' if homework.submission_enabled else 'Disabled' }}
+          </p>
+          {% if homework.attachment_url %}
+          <p><a href="{{ homework.attachment_url }}" target="_blank" rel="noopener" class="action-btn btn-outline btn-sm">Download attachment ({{ homework.attachment_name or 'file' }})</a></p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Seen by Students ({{ views|length }})</div></div>
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead><tr><th>Student</th><th>Seen At</th></tr></thead>
+            <tbody>
+              {% for v in views %}
+              <tr>
+                <td>{{ v.student.full_name if v.student else '—' }}</td>
+                <td>{{ v.viewed_at[:16] if v.viewed_at else '—' }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="2" class="empty-state">No students have viewed this yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Record Submission (Manual)</div></div>
+        <div class="section-body">
+          <form method="POST" class="portal-form">
+            <input type="hidden" name="action" value="record" />
+            <div class="form-grid-2">
+              <div class="form-row">
+                <label class="field-label">Student</label>
+                <select class="form-input" name="student_id" required>
+                  <option value="">Select student</option>
+                  {% for s in class_students %}
+                  <option value="{{ s.id }}">{{ s.full_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-row">
+                <label class="field-label">Status</label>
+                <select class="form-input" name="status">
+                  <option value="submitted">Submitted</option>
+                  <option value="late">Late</option>
+                  <option value="graded">Graded</option>
+                  <option value="missing">Missing</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="field-label">Notes</label>
+              <input class="form-input" type="text" name="notes" placeholder="Optional notes" />
+            </div>
+            <button type="submit" class="action-btn btn-primary">Record</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Submissions ({{ submissions|length }})</div></div>
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead><tr><th>Student</th><th>Status</th><th>Notes</th><th>Attachment</th><th>Submitted</th><th>Teacher Comment</th></tr></thead>
+            <tbody>
+              {% for sub in submissions %}
+              <tr>
+                <td>{{ sub.student.full_name if sub.student else '—' }}</td>
+                <td><span class="badge badge-{{ sub.status }}">{{ sub.status }}</span></td>
+                <td>{{ sub.notes or '—' }}</td>
+                <td>{% if sub.attachment_url %}<a href="{{ sub.attachment_url }}" target="_blank" rel="noopener">Download</a>{% else %}—{% endif %}</td>
+                <td>{{ sub.submitted_at[:16] if sub.submitted_at else '—' }}</td>
+                <td>
+                  {% if sub.teacher_comment %}
+                  <p>{{ sub.teacher_comment }}</p>
+                  {% endif %}
+                  <form method="POST" class="inline-form" style="margin-top:8px;">
+                    <input type="hidden" name="action" value="comment" />
+                    <input type="hidden" name="student_id" value="{{ sub.student_id }}" />
+                    <input class="form-input" type="text" name="teacher_comment" placeholder="Add comment…" value="{{ sub.teacher_comment or '' }}" />
+                    <button type="submit" class="action-btn btn-outline btn-sm">Save</button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="empty-state">No submissions yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — {{ school.name if school else 'School Portal' }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/students.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/teachers.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">{{ page_title }}</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">All Teachers & Staff ({{ teachers|length }})</div>
+          <a href="{{ url_for('teachers.add_teacher') }}" class="action-btn btn-primary">+ Add Staff</a>
+        </div>
+        <div class="section-body">
+          <form method="GET" class="search-bar">
+            <input class="form-input" type="text" name="q" placeholder="Search name, employee ID, email…" value="{{ query }}" />
+            <select class="form-input" name="status">
+              <option value="">All statuses</option>
+              {% for st in statuses %}
+              <option value="{{ st }}" {% if filter_status == st %}selected{% endif %}>{{ st|replace('_', ' ')|title }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="action-btn btn-primary">Search</button>
+          </form>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Employee ID</th>
+                  <th>Designation</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>Login</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for t in teachers %}
+                <tr>
+                  <td><strong>{{ t.full_name }}</strong></td>
+                  <td>{{ t.employee_id }}</td>
+                  <td>{{ t.designation or '—' }}</td>
+                  <td>{{ t.phone or '—' }}</td>
+                  <td>{{ t.email or '—' }}</td>
+                  <td>{% if t.login_enabled %}<span class="badge badge-active">Yes</span>{% else %}<span class="badge badge-inactive">No</span>{% endif %}</td>
+                  <td><span class="badge badge-{{ t.status }}">{{ t.status|replace('_', ' ') }}</span></td>
+                  <td class="actions-cell">
+                    <a href="{{ url_for('teachers.view_teacher', teacher_id=t.id) }}" class="action-btn btn-outline btn-sm">View</a>
+                    <a href="{{ url_for('teachers.edit_teacher', teacher_id=t.id) }}" class="action-btn btn-outline btn-sm">Edit</a>
+                  </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="empty-state">No staff found. <a href="{{ url_for('teachers.add_teacher') }}">Add teacher</a>.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

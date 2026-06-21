@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/students.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "parent_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <div class="profile-header">
+        <div class="profile-photo placeholder">{{ student.full_name[0]|upper }}</div>
+        <div class="profile-info">
+          <h1 class="profile-name">{{ student.full_name }}</h1>
+          <p class="profile-meta">{{ student.class_grade or '—' }}{% if student.section %}-{{ student.section }}{% endif %} · Roll: {{ student.roll_number or '—' }} · Adm: {{ student.admission_number }}</p>
+          <span class="badge badge-active">{{ student.status|capitalize }}</span>
+        </div>
+        <div class="profile-actions">
+          <a href="{{ url_for('parent_portal.attendance', student_id=student.id) }}" class="action-btn btn-outline">Attendance</a>
+          <a href="{{ url_for('parent_portal.timetable', student_id=student.id) }}" class="action-btn btn-outline">Timetable</a>
+          <a href="{{ url_for('parent_portal.children') }}" class="action-btn btn-outline">Back</a>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card green"><div class="stat-label">Attendance (Month)</div><div class="stat-value">{{ attendance_summary.attendance_pct }}%</div></div>
+        <div class="stat-card"><div class="stat-label">Present</div><div class="stat-value">{{ attendance_summary.present }}</div></div>
+        <div class="stat-card red"><div class="stat-label">Absent</div><div class="stat-value">{{ attendance_summary.absent }}</div></div>
+      </div>
+
+      <div class="detail-grid">
+        <div class="detail-card"><div class="detail-label">Date of Birth</div><div class="detail-value">{{ student.date_of_birth or '—' }}</div></div>
+        <div class="detail-card"><div class="detail-label">Gender</div><div class="detail-value">{{ student.gender|capitalize if student.gender else '—' }}</div></div>
+        <div class="detail-card"><div class="detail-label">Contact</div><div class="detail-value">{{ student.contact_number or '—' }}</div></div>
+        <div class="detail-card"><div class="detail-label">Batch / Session</div><div class="detail-value">{{ student.batch_session or '—' }}</div></div>
+        <div class="detail-card"><div class="detail-label">Address</div><div class="detail-value">{{ student.address or '—' }}</div></div>
+        <div class="detail-card"><div class="detail-label">Emergency Contact</div><div class="detail-value">{{ student.emergency_contact or '—' }}</div></div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

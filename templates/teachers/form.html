@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — {{ school.name if school else 'School Portal' }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/students.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/teachers.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">{{ page_title }}</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="POST" action="{{ form_action }}" enctype="multipart/form-data" class="student-form">
+        <div class="form-grid">
+          <div class="section-card">
+            <div class="section-header"><div class="section-title">Teacher / Staff Profile</div></div>
+            <div class="section-body form-grid-2">
+              <div class="form-group full-width">
+                <label class="form-label" for="full_name">Teacher Name *</label>
+                <input class="form-input" id="full_name" name="full_name" required value="{{ teacher.full_name if teacher else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="employee_id">Employee ID *</label>
+                <input class="form-input" id="employee_id" name="employee_id" required value="{{ teacher.employee_id if teacher else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="designation">Designation</label>
+                <select class="form-input" id="designation" name="designation">
+                  {% for d in designations %}
+                  <option value="{{ d }}" {% if (teacher and teacher.designation == d) or (not teacher and d == 'Teacher') %}selected{% endif %}>{{ d }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="cnic">CNIC</label>
+                <input class="form-input" id="cnic" name="cnic" value="{{ teacher.cnic if teacher else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="phone">Phone Number</label>
+                <input class="form-input" id="phone" name="phone" value="{{ teacher.phone if teacher else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="email">Email</label>
+                <input class="form-input" type="email" id="email" name="email" value="{{ teacher.email if teacher else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="qualification">Qualification</label>
+                <input class="form-input" id="qualification" name="qualification" value="{{ teacher.qualification if teacher else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="joining_date">Joining Date</label>
+                <input class="form-input" type="date" id="joining_date" name="joining_date" value="{{ teacher.joining_date if teacher else '' }}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="status">Staff Status</label>
+                <select class="form-input" id="status" name="status">
+                  {% for st in statuses %}
+                  <option value="{{ st }}" {% if (teacher and teacher.status == st) or (not teacher and st == 'active') %}selected{% endif %}>{{ st|replace('_', ' ')|title }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-header"><div class="section-title">Assign Subjects</div></div>
+            <div class="section-body">
+              {% if subjects %}
+              <div class="checkbox-list">
+                {% for s in subjects %}
+                <label class="checkbox-item">
+                  <input type="checkbox" name="subject_ids" value="{{ s.id }}" {% if s.id in assigned_subject_ids %}checked{% endif %} />
+                  <span>{{ s.name }}{% if s.code %} ({{ s.code }}){% endif %}</span>
+                </label>
+                {% endfor %}
+              </div>
+              {% else %}
+              <p class="field-hint">No subjects yet — add comma-separated names below.</p>
+              {% endif %}
+              <div class="form-group" style="margin-top:16px;">
+                <label class="form-label" for="new_subjects">Add New Subjects</label>
+                <input class="form-input" id="new_subjects" name="new_subjects" placeholder="e.g. Mathematics, Physics, English" />
+                <p class="field-hint">Comma-separated — created automatically if they don't exist.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-header"><div class="section-title">Assign Classes</div></div>
+            <div class="section-body">
+              {% if classes %}
+              <div class="checkbox-list">
+                {% for c in classes %}
+                <label class="checkbox-item">
+                  <input type="checkbox" name="class_ids" value="{{ c.id }}" {% if c.id in assigned_class_ids %}checked{% endif %} />
+                  <span>{{ c.name or c.grade }}{% if c.section %} — Section {{ c.section }}{% endif %}</span>
+                </label>
+                {% endfor %}
+              </div>
+              {% else %}
+              <div class="empty-state">No classes defined yet. Add classes in Module 1 tables first.</div>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if not teacher or not teacher.login_enabled %}
+          <div class="section-card">
+            <div class="section-header"><div class="section-title">Login Credentials</div></div>
+            <div class="section-body form-grid-2">
+              <div class="form-group full-width">
+                <label class="role-toggle">
+                  <input type="checkbox" id="enable_login" name="enable_login" />
+                  <span>Enable teacher portal login</span>
+                </label>
+              </div>
+              <div class="form-group login-fields" hidden>
+                <label class="form-label" for="login_email">Login Email</label>
+                <input class="form-input" type="email" id="login_email" name="login_email" />
+              </div>
+              <div class="form-group login-fields" hidden>
+                <label class="form-label" for="login_password">Initial Password</label>
+                <input class="form-input" type="password" id="login_password" name="login_password" minlength="6" />
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="action-btn btn-primary">Save Staff</button>
+          <a href="{{ url_for('teachers.list_teachers') }}" class="action-btn btn-outline">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
+{% endblock %}
+{% block extra_js %}
+  <script src="{{ url_for('static', filename='js/parents.js') }}"></script>
+{% endblock %}

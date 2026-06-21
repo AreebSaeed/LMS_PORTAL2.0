@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/students.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/attendance.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% set active_nav = 'attendance' %}
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <div class="profile-header">
+        <div class="profile-photo placeholder">{{ student.full_name[0]|upper }}</div>
+        <div class="profile-info">
+          <h1 class="profile-name">{{ student.full_name }}</h1>
+          <p class="profile-meta">{{ student.class_grade or '—' }}{% if student.section %}-{{ student.section }}{% endif %} · Adm: {{ student.admission_number }}</p>
+        </div>
+        <a href="{{ url_for('attendance.admin_dashboard') }}" class="action-btn btn-outline">Back</a>
+      </div>
+      <div class="section-card">
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Status</th><th>Notes</th><th>Submitted</th></tr></thead>
+            <tbody>
+              {% for h in history %}
+              <tr>
+                <td>{{ h.date }}</td>
+                <td><span class="badge badge-{{ h.status }}">{{ h.status }}</span></td>
+                <td>{{ h.notes or '—' }}</td>
+                <td>{% if h.is_submitted %}Yes{% else %}No{% endif %}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4" class="empty-state">No attendance history yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

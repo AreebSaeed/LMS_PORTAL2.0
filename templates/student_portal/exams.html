@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/student_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "student_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <div class="section-card"><div class="section-body">
+        {% for exam in upcoming_exams %}
+        <div class="list-item"><div><div class="list-item-title">{{ exam.title }}</div><div class="list-item-meta">Date: {{ exam.exam_date }}</div></div></div>
+        {% else %}<div class="empty-state">No upcoming exams scheduled.</div>{% endfor %}
+      </div></div>
+    </div>
+  </main>
+</div>
+{% endblock %}

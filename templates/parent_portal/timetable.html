@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "parent_portal/_macros.html" import child_selector %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "parent_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% if not student %}
+      <div class="empty-state">No children linked to your account.</div>
+      {% else %}
+      {{ child_selector(children, student, url_for('parent_portal.timetable')) }}
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">{{ student.full_name }} — Class Timetable</div>
+        </div>
+        <div class="section-body" style="padding:0;">
+          {% if timetable %}
+          <table class="data-table">
+            <thead><tr><th>Day</th><th>Time</th><th>Subject</th><th>Teacher</th><th>Room</th></tr></thead>
+            <tbody>
+              {% for slot in timetable %}
+              <tr>
+                <td>{{ slot.day_of_week|capitalize }}</td>
+                <td>{{ slot.start_time[:5] if slot.start_time else '—' }} – {{ slot.end_time[:5] if slot.end_time else '—' }}</td>
+                <td>{{ slot.subject_name }}</td>
+                <td>{{ slot.teacher_name }}</td>
+                <td>{{ slot.room or '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty-state">No timetable available for this class. Contact the school if this seems incorrect.</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </main>
+</div>
+{% endblock %}

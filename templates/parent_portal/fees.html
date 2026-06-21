@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "parent_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <div class="stats-grid" style="margin-bottom:24px;">
+        <div class="stat-card yellow"><div class="stat-label">Total Pending</div><div class="stat-value">{{ '%.2f'|format(pending_total) }}</div></div>
+        <div class="stat-card green"><div class="stat-label">Paid Records</div><div class="stat-value">{{ paid_fees|length }}</div></div>
+        <div class="stat-card red"><div class="stat-label">Unpaid Records</div><div class="stat-value">{{ unpaid_fees|length }}</div></div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Unpaid / Pending Fees</div></div>
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead><tr><th>Student</th><th>Amount</th><th>Paid</th><th>Balance</th><th>Due Date</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for f in unpaid_fees %}
+              <tr>
+                <td>{{ f.student_name }}</td>
+                <td>{{ f.amount }}</td>
+                <td>{{ f.amount_paid or 0 }}</td>
+                <td>{{ '%.2f'|format(f.balance) }}</td>
+                <td>{{ f.due_date or '—' }}</td>
+                <td><span class="badge badge-{{ f.status }}">{{ f.status }}</span></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="empty-state">No pending fees.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Paid Fees — Download Receipt</div></div>
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead><tr><th>Student</th><th>Amount</th><th>Paid</th><th>Paid On</th><th>Receipt</th></tr></thead>
+            <tbody>
+              {% for f in paid_fees %}
+              <tr>
+                <td>{{ f.student_name }}</td>
+                <td>{{ f.amount }}</td>
+                <td>{{ f.amount_paid or f.amount }}</td>
+                <td>{{ f.paid_at[:10] if f.paid_at else '—' }}</td>
+                <td>
+                  <a href="{{ url_for('parent_portal.fee_receipt', fee_id=f.id) }}" class="action-btn btn-outline btn-sm">View</a>
+                  <a href="{{ url_for('parent_portal.fee_receipt', fee_id=f.id, format='pdf') }}" class="action-btn btn-outline btn-sm">PDF</a>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="empty-state">No paid fee records.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

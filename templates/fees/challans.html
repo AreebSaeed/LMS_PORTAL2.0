@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fees.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "fees/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Filter Challans</div></div>
+        <div class="section-body">
+          <form method="GET" class="portal-form">
+            <div class="form-grid-3">
+              <div class="form-row">
+                <label class="field-label">Status</label>
+                <select class="form-input" name="status">
+                  <option value="">All</option>
+                  <option value="paid" {% if filter_status == 'paid' %}selected{% endif %}>Paid</option>
+                  <option value="pending" {% if filter_status == 'pending' %}selected{% endif %}>Pending</option>
+                  <option value="partial" {% if filter_status == 'partial' %}selected{% endif %}>Partial</option>
+                  <option value="overdue" {% if filter_status == 'overdue' %}selected{% endif %}>Overdue</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label class="field-label">Class</label>
+                <select class="form-input" name="class_id">
+                  <option value="">All classes</option>
+                  {% for c in classes %}
+                  <option value="{{ c.id }}" {% if filter_class == c.id %}selected{% endif %}>{{ c.name or c.grade }}{% if c.section %} — {{ c.section }}{% endif %}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-row">
+                <label class="field-label">Billing Month</label>
+                <input class="form-input" type="date" name="billing_month" value="{{ filter_month or '' }}" />
+              </div>
+            </div>
+            <button type="submit" class="action-btn btn-outline">Apply</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead><tr><th>Challan</th><th>Student</th><th>Class</th><th>Month</th><th>Total</th><th>Paid</th><th>Balance</th><th>Due</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {% for f in fees %}
+              <tr>
+                <td>{{ f.challan_number or '—' }}</td>
+                <td>{{ f.student_name }}</td>
+                <td>{{ f.class_label }}</td>
+                <td>{{ f.billing_month[:7] if f.billing_month else '—' }}</td>
+                <td>{{ '%.2f'|format(f.total_amount) }}</td>
+                <td>{{ '%.2f'|format(f.amount_paid or 0) }}</td>
+                <td>{{ '%.2f'|format(f.balance) }}</td>
+                <td>{{ f.due_date or '—' }}</td>
+                <td><span class="badge badge-{{ f.status }}">{{ f.status }}</span></td>
+                <td><a href="{{ url_for('fees.challan_detail', fee_id=f.id) }}" class="action-btn btn-outline btn-sm">Manage</a></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="10" class="empty-state">No challans found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

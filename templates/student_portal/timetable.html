@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/student_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "student_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% if todays_schedule %}
+      <div class="section-card"><div class="section-header"><div class="section-title">Today</div></div><div class="section-body">
+        {% for slot in todays_schedule %}<div class="schedule-slot"><div><div class="list-item-title">{{ slot.subject_name }}</div><div class="list-item-meta">{{ slot.teacher_name }}</div></div><div class="schedule-time">{{ slot.start_time[:5] }} – {{ slot.end_time[:5] }}</div></div>{% endfor %}
+      </div></div>
+      {% endif %}
+      <div class="section-card"><div class="section-body" style="padding:0;"><table class="data-table"><thead><tr><th>Day</th><th>Time</th><th>Subject</th><th>Teacher</th><th>Room</th></tr></thead><tbody>
+        {% for slot in timetable %}<tr><td>{{ slot.day_of_week|capitalize }}</td><td>{{ slot.start_time[:5] }} – {{ slot.end_time[:5] }}</td><td>{{ slot.subject_name }}</td><td>{{ slot.teacher_name }}</td><td>{{ slot.room or '—' }}</td></tr>
+        {% else %}<tr><td colspan="5" class="empty-state">No timetable available.</td></tr>{% endfor %}
+      </tbody></table></div></div>
+    </div>
+  </main>
+</div>
+{% endblock %}

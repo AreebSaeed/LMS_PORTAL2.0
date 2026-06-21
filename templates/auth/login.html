@@ -7,7 +7,7 @@
 {% block body %}
 <div class="login-card">
   <div class="login-logo">🏫 SchoolPortal</div>
-  <p class="login-sub">Sign in to your account</p>
+  <p class="login-sub">Sign in with your username, email, or ID</p>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, message in messages %}
@@ -15,16 +15,61 @@
     {% endfor %}
   {% endwith %}
 
-  <form method="POST" action="{{ url_for('auth.login') }}">
+  <form method="POST" action="{{ url_for('auth.login') }}" id="login-form">
     <div class="form-group">
-      <label class="form-label" for="email">Email address</label>
-      <input class="form-input" type="email" id="email" name="email" required placeholder="you@school.edu" />
+      <label class="form-label" for="login_id">Username / Email / ID</label>
+      <input
+        class="form-input"
+        type="text"
+        id="login_id"
+        name="login_id"
+        required
+        autocomplete="username"
+        placeholder="Email, user ID, or phone"
+        value="{{ login_id or '' }}"
+      />
     </div>
+
     <div class="form-group">
       <label class="form-label" for="password">Password</label>
-      <input class="form-input" type="password" id="password" name="password" required placeholder="••••••••" />
+      <input
+        class="form-input"
+        type="password"
+        id="password"
+        name="password"
+        required
+        autocomplete="current-password"
+        placeholder="••••••••"
+      />
     </div>
+
+    <div class="form-group role-section">
+      <label class="role-toggle">
+        <input
+          type="checkbox"
+          id="manual_role"
+          name="manual_role"
+          {% if manual_role %}checked{% endif %}
+        />
+        <span>Select role manually</span>
+      </label>
+      <p class="role-hint">Leave unchecked to detect your role automatically after login.</p>
+
+      <div class="role-select-wrap" id="role-select-wrap" {% if not manual_role %}hidden{% endif %}>
+        <label class="form-label" for="role">Your role</label>
+        <select class="form-input" id="role" name="role">
+          <option value="">Choose a role…</option>
+          {% for value, label in login_roles %}
+          <option value="{{ value }}" {% if selected_role == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
     <button class="submit-btn" type="submit">Sign In</button>
   </form>
 </div>
+{% endblock %}
+{% block extra_js %}
+  <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 {% endblock %}

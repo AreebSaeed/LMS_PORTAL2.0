@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Accountant — Dashboard{% endblock %}
+{% block title %}{{ dashboard_title }} — School Portal{% endblock %}
 {% block body %}
 <div class="app-layout">
   <aside class="sidebar">
@@ -34,7 +34,7 @@
   </aside>
   <main class="main-content">
     <div class="topbar">
-      <div class="topbar-title">Finance Dashboard</div>
+      <div class="topbar-title">{{ dashboard_title }}</div>
       <div class="topbar-date" id="current-date"></div>
     </div>
     <div class="page-body">

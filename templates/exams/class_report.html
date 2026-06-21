@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/exams.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% if use_admin_sidebar %}{% set active_nav = 'exams' %}{% include "partials/admin_sidebar.html" %}
+  {% else %}{% set active_nav = 'exams' %}{% include "teacher_portal/sidebar.html" %}{% endif %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div></div>
+    <div class="page-body">
+      <div class="section-card"><div class="section-body" style="padding:0;overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr><th>Rank</th><th>Student</th><th>Roll</th><th>Total</th><th>%</th><th>Grade</th><th>Result Card</th></tr></thead>
+          <tbody>
+            {% for r in results %}
+            <tr>
+              <td><strong>#{{ r.class_rank or '—' }}</strong></td>
+              <td>{{ r.student.full_name if r.student else '—' }}</td>
+              <td>{{ r.student.roll_number if r.student else '—' }}</td>
+              <td>{{ r.total_obtained }}/{{ r.total_max }}</td>
+              <td>{{ r.percentage }}%</td>
+              <td><span class="badge badge-active">{{ r.overall_grade }}</span></td>
+              <td>
+                <a href="{{ url_for('exams.result_card', term_id=term.id, student_id=r.student_id) }}" class="action-btn btn-outline btn-sm">View</a>
+                <a href="{{ url_for('exams.result_pdf', term_id=term.id, student_id=r.student_id) }}" class="action-btn btn-outline btn-sm">PDF</a>
+              </td>
+            </tr>
+            {% else %}<tr><td colspan="7" class="empty-state">No results yet. Enter marks and click Calculate.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div></div>
+    </div>
+  </main>
+</div>
+{% endblock %}

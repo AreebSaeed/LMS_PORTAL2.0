@@ -1,0 +1,46 @@
+.class-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.class-picker-card {
+  background: var(--gray-100);
+  border-radius: var(--radius);
+  padding: 20px 16px;
+  text-align: center;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+}
+
+.class-picker-card:hover {
+  background: var(--white);
+  border-color: var(--blue);
+  box-shadow: var(--shadow);
+}
+
+.class-picker-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.class-picker-sub {
+  font-size: 12px;
+  color: var(--gray-400);
+  margin-top: 4px;
+}
+
+.status-select {
+  min-width: 120px;
+  padding: 6px 10px !important;
+}
+
+.inline-edit-form {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.badge-leave { background: #DBEAFE; color: #1E40AF; }

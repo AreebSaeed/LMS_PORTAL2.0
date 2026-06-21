@@ -1,0 +1,26 @@
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">🏫 {{ school.name if school else 'SchoolPortal' }}</div>
+    <div class="logo-sub">Teacher Panel</div>
+  </div>
+  <span class="sidebar-role-badge">Teacher</span>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a href="{{ url_for('dashboard.index') }}" class="nav-item">
+      <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Dashboard
+    </a>
+    <div class="nav-section-label">Attendance</div>
+    <a href="{{ url_for('attendance.teacher_index') }}" class="nav-item active">
+      <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Mark Attendance
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar">{{ full_name[0] | upper }}</div>
+      <div><div class="user-name">{{ full_name }}</div></div>
+    </div>
+    <a href="{{ url_for('auth.logout') }}"><button class="logout-btn">Sign Out</button></a>
+  </div>
+</aside>
