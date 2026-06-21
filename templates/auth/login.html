@@ -6,8 +6,11 @@
 {% endblock %}
 {% block body %}
 <div class="login-card">
-  <div class="login-logo">🏫 SchoolPortal</div>
-  <p class="login-sub">Sign in with your username, email, or ID</p>
+  <div class="login-brand">
+    <div class="logo-icon"><i class="ti ti-school"></i></div>
+    <div class="login-brand-text">EduCore</div>
+  </div>
+  <p class="login-sub">Sign in to your school portal</p>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, message in messages %}

@@ -121,6 +121,16 @@ CREATE POLICY "School staff read announcements"
     school_id IN (SELECT school_id FROM user_profiles WHERE id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "School admin manage announcements" ON announcements;
+CREATE POLICY "School admin manage announcements"
+  ON announcements FOR ALL
+  USING (
+    school_id IN (
+      SELECT school_id FROM user_profiles
+      WHERE id = auth.uid() AND role = 'school_admin'
+    )
+  );
+
 DROP POLICY IF EXISTS "School staff read admissions" ON admissions;
 CREATE POLICY "School staff read admissions"
   ON admissions FOR SELECT

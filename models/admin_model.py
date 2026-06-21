@@ -219,3 +219,43 @@ def get_admin_dashboard_data(school_id: str) -> dict:
         "recent_announcements": recent_announcements,
         "today": today,
     }
+
+
+def get_school_announcements(school_id: str, limit=50):
+    return _fetch_rows(
+        "announcements",
+        school_id,
+        select="id, title, body, author_id, created_at",
+        order_by="-created_at",
+        limit=limit,
+    )
+
+
+def create_school_announcement(
+    school_id: str, author_id: str, title: str, body: str
+):
+    payload = {
+        "school_id": school_id,
+        "author_id": author_id,
+        "title": title.strip(),
+        "body": (body or "").strip() or None,
+    }
+    try:
+        result = supabase_admin.table("announcements").insert(payload).execute()
+        return result.data[0] if result.data else None
+    except Exception:
+        return None
+
+
+def delete_school_announcement(school_id: str, announcement_id: str) -> bool:
+    try:
+        (
+            supabase_admin.table("announcements")
+            .delete()
+            .eq("id", announcement_id)
+            .eq("school_id", school_id)
+            .execute()
+        )
+        return True
+    except Exception:
+        return False

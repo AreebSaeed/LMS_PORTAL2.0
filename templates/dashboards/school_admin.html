@@ -15,52 +15,81 @@
     </div>
 
     <div class="page-body">
-      <div class="welcome-banner">
-        <div class="welcome-title">{{ school.name if school else 'Your School' }}</div>
-        <div class="welcome-sub">Welcome back, {{ full_name }}. Your school control center — everything in one place.</div>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <div class="page-header">
+        <div class="page-title">Welcome back, {{ full_name }} 👋</div>
+        <div class="page-subtitle">{{ school.name if school else 'Your School' }} — Admin control center</div>
       </div>
 
-      <!-- 8 Dashboard Cards -->
       <div class="stats-grid-8">
         <div class="stat-card navy">
-          <div class="stat-label">Total Students</div>
-          <div class="stat-value">{{ students_count }}</div>
-          <div class="stat-desc">Enrolled students</div>
+          <div class="stat-icon"><i class="ti ti-users"></i></div>
+          <div>
+            <div class="stat-label">Total Students</div>
+            <div class="stat-value">{{ students_count }}</div>
+            <div class="stat-desc">Enrolled students</div>
+          </div>
         </div>
         <div class="stat-card green">
-          <div class="stat-label">Total Teachers</div>
-          <div class="stat-value">{{ teachers_count }}</div>
-          <div class="stat-desc">Active teaching staff</div>
+          <div class="stat-icon"><i class="ti ti-chalkboard"></i></div>
+          <div>
+            <div class="stat-label">Total Teachers</div>
+            <div class="stat-value">{{ teachers_count }}</div>
+            <div class="stat-desc">Active teaching staff</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Present Students Today</div>
-          <div class="stat-value">{{ present_today }}</div>
-          <div class="stat-desc">{{ attendance_rate }}% attendance rate</div>
+        <div class="stat-card green">
+          <div class="stat-icon"><i class="ti ti-calendar-check"></i></div>
+          <div>
+            <div class="stat-label">Present Today</div>
+            <div class="stat-value">{{ present_today }}</div>
+            <div class="stat-desc">{{ attendance_rate }}% attendance rate</div>
+          </div>
         </div>
         <div class="stat-card red">
-          <div class="stat-label">Absent Students Today</div>
-          <div class="stat-value">{{ absent_today }}</div>
-          <div class="stat-desc">Marked absent today</div>
-        </div>
-        <div class="stat-card green">
-          <div class="stat-label">Monthly Fee Collection</div>
-          <div class="stat-value stat-value-sm">${{ '{:,.0f}'.format(monthly_fee_collection) }}</div>
-          <div class="stat-desc">Collected this month</div>
+          <div class="stat-icon"><i class="ti ti-user-x"></i></div>
+          <div>
+            <div class="stat-label">Absent Today</div>
+            <div class="stat-value">{{ absent_today }}</div>
+            <div class="stat-desc">Marked absent today</div>
+          </div>
         </div>
         <div class="stat-card yellow">
-          <div class="stat-label">Pending Fees</div>
-          <div class="stat-value stat-value-sm">${{ '{:,.0f}'.format(pending_fees) }}</div>
-          <div class="stat-desc">Outstanding dues</div>
+          <div class="stat-icon"><i class="ti ti-cash"></i></div>
+          <div>
+            <div class="stat-label">Fee Collection</div>
+            <div class="stat-value stat-value-sm">${{ '{:,.0f}'.format(monthly_fee_collection) }}</div>
+            <div class="stat-desc">Collected this month</div>
+          </div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-icon"><i class="ti ti-alert-circle"></i></div>
+          <div>
+            <div class="stat-label">Pending Fees</div>
+            <div class="stat-value stat-value-sm">${{ '{:,.0f}'.format(pending_fees) }}</div>
+            <div class="stat-desc">Outstanding dues</div>
+          </div>
         </div>
         <div class="stat-card purple">
-          <div class="stat-label">Upcoming Exams</div>
-          <div class="stat-value">{{ upcoming_exams_count }}</div>
-          <div class="stat-desc">Scheduled ahead</div>
+          <div class="stat-icon"><i class="ti ti-clipboard-check"></i></div>
+          <div>
+            <div class="stat-label">Upcoming Exams</div>
+            <div class="stat-value">{{ upcoming_exams_count }}</div>
+            <div class="stat-desc">Scheduled ahead</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">New Admissions</div>
-          <div class="stat-value">{{ new_admissions }}</div>
-          <div class="stat-desc">This month</div>
+        <div class="stat-card navy">
+          <div class="stat-icon"><i class="ti ti-user-plus"></i></div>
+          <div>
+            <div class="stat-label">New Admissions</div>
+            <div class="stat-value">{{ new_admissions }}</div>
+            <div class="stat-desc">This month</div>
+          </div>
         </div>
       </div>
 
@@ -196,7 +225,7 @@
       <div class="section-card">
         <div class="section-header">
           <div class="section-title">Recent Announcements</div>
-          <button class="action-btn btn-outline">View All</button>
+          <a href="{{ url_for('announcements.index') }}" class="action-btn btn-outline">Manage</a>
         </div>
         <div class="section-body">
           {% if recent_announcements %}
@@ -276,7 +305,7 @@
               <div class="module-icon">📝</div>
               <div class="module-label">Exams</div>
             </a>
-            <a href="#" class="module-card">
+            <a href="{{ url_for('announcements.index') }}" class="module-card">
               <div class="module-icon">📢</div>
               <div class="module-label">Announcements</div>
             </a>

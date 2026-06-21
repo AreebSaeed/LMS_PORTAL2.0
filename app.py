@@ -11,6 +11,7 @@ from controllers.teacher_portal_controller import teacher_portal_bp
 from controllers.student_portal_controller import student_portal_bp
 from controllers.exam_controller import exam_bp
 from controllers.fee_controller import fee_bp
+from controllers.announcement_controller import announcement_bp
 
 
 def create_app():
@@ -28,6 +29,7 @@ def create_app():
     app.register_blueprint(student_portal_bp, url_prefix="/learn")
     app.register_blueprint(exam_bp, url_prefix="/exams")
     app.register_blueprint(fee_bp, url_prefix="/fees")
+    app.register_blueprint(announcement_bp, url_prefix="/announcements")
 
     @app.route("/")
     def index():

@@ -25,7 +25,8 @@
   .stats-grid-8 { grid-template-columns: 1fr; }
 }
 
-.stat-card.purple { border-left-color: #8B5CF6; }
+.stat-card.purple .stat-icon { background: var(--purple-light); }
+.stat-card.purple .stat-icon i { color: var(--purple); }
 
 .stat-value-sm {
   font-size: 28px;

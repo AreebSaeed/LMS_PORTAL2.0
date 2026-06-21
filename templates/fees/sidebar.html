@@ -1,42 +1,35 @@
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <div class="logo-mark">🏫 {{ school.name if school else 'SchoolPortal' }}</div>
-    <div class="logo-sub">Finance Panel</div>
+    <div class="logo-mark">
+      <div class="logo-icon"><i class="ti ti-school"></i></div>
+      <div>
+        <div class="logo-text">{{ school.name if school else 'EduCore' }}</div>
+        <div class="logo-sub">Finance Panel</div>
+      </div>
+    </div>
   </div>
   <span class="sidebar-role-badge">{{ role_label }}</span>
   <nav class="sidebar-nav">
     <div class="nav-section-label">Overview</div>
-    <a href="{{ url_for('fees.index') }}" class="nav-item {% if active_nav == 'fees' %}active{% endif %}">
-      <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-      Dashboard
-    </a>
+    <a href="{{ url_for('fees.index') }}" class="nav-item {% if active_nav == 'fees' %}active{% endif %}"><i class="ti ti-layout-dashboard"></i> Dashboard</a>
     <div class="nav-section-label">Fee Setup</div>
-    <a href="{{ url_for('fees.structure') }}" class="nav-item {% if active_nav == 'structure' %}active{% endif %}">
-      <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-      Fee Structure
-    </a>
-    <a href="{{ url_for('fees.generate') }}" class="nav-item {% if active_nav == 'generate' %}active{% endif %}">
-      <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-      Generate Challans
-    </a>
+    <a href="{{ url_for('fees.structure') }}" class="nav-item {% if active_nav == 'structure' %}active{% endif %}"><i class="ti ti-list-details"></i> Fee Structure</a>
+    <a href="{{ url_for('fees.generate') }}" class="nav-item {% if active_nav == 'generate' %}active{% endif %}"><i class="ti ti-file-plus"></i> Generate Challans</a>
     <div class="nav-section-label">Operations</div>
-    <a href="{{ url_for('fees.challans') }}" class="nav-item {% if active_nav == 'challans' %}active{% endif %}">
-      <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-      All Challans
-    </a>
+    <a href="{{ url_for('fees.challans') }}" class="nav-item {% if active_nav == 'challans' %}active{% endif %}"><i class="ti ti-file-invoice"></i> All Challans</a>
     <div class="nav-section-label">Reports</div>
-    <a href="{{ url_for('fees.reports', report_type='paid') }}" class="nav-item {% if active_nav == 'reports' and report_type == 'paid' %}active{% endif %}">Paid Students</a>
-    <a href="{{ url_for('fees.reports', report_type='unpaid') }}" class="nav-item {% if active_nav == 'reports' and report_type == 'unpaid' %}active{% endif %}">Unpaid Students</a>
-    <a href="{{ url_for('fees.reports', report_type='defaulters') }}" class="nav-item {% if active_nav == 'reports' and report_type == 'defaulters' %}active{% endif %}">Defaulters</a>
+    <a href="{{ url_for('fees.reports', report_type='paid') }}" class="nav-item {% if active_nav == 'reports' and report_type == 'paid' %}active{% endif %}"><i class="ti ti-circle-check"></i> Paid Students</a>
+    <a href="{{ url_for('fees.reports', report_type='unpaid') }}" class="nav-item {% if active_nav == 'reports' and report_type == 'unpaid' %}active{% endif %}"><i class="ti ti-alert-circle"></i> Unpaid Students</a>
+    <a href="{{ url_for('fees.reports', report_type='defaulters') }}" class="nav-item {% if active_nav == 'reports' and report_type == 'defaulters' %}active{% endif %}"><i class="ti ti-alert-triangle"></i> Defaulters</a>
     {% if role == 'school_admin' %}
     <div class="nav-section-label">Admin</div>
-    <a href="{{ url_for('dashboard.index') }}" class="nav-item">Admin Dashboard</a>
+    <a href="{{ url_for('dashboard.index') }}" class="nav-item"><i class="ti ti-arrow-left"></i> Admin Dashboard</a>
     {% endif %}
   </nav>
   <div class="sidebar-footer">
     <div class="user-info">
       <div class="user-avatar">{{ full_name[0] | upper }}</div>
-      <div><div class="user-name">{{ full_name }}</div></div>
+      <div><div class="user-name">{{ full_name }}</div><div class="user-role">{{ role_label }}</div></div>
     </div>
     <a href="{{ url_for('auth.logout') }}"><button class="logout-btn">Sign Out</button></a>
   </div>

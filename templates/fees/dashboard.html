@@ -15,10 +15,34 @@
       {% endwith %}
 
       <div class="stats-grid">
-        <div class="stat-card green"><div class="stat-label">Collected This Month</div><div class="stat-value stat-value-sm">{{ '%.2f'|format(collected_month) }}</div></div>
-        <div class="stat-card red"><div class="stat-label">Pending Dues</div><div class="stat-value stat-value-sm">{{ '%.2f'|format(pending_total) }}</div></div>
-        <div class="stat-card"><div class="stat-label">Paid Records</div><div class="stat-value">{{ paid_count }}</div></div>
-        <div class="stat-card yellow"><div class="stat-label">Unpaid / Defaulters</div><div class="stat-value">{{ unpaid_count }} / {{ defaulter_count }}</div></div>
+        <div class="stat-card green">
+          <div class="stat-icon"><i class="ti ti-cash"></i></div>
+          <div>
+            <div class="stat-label">Collected This Month</div>
+            <div class="stat-value stat-value-sm">{{ '%.2f'|format(collected_month) }}</div>
+          </div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-icon"><i class="ti ti-alert-circle"></i></div>
+          <div>
+            <div class="stat-label">Pending Dues</div>
+            <div class="stat-value stat-value-sm">{{ '%.2f'|format(pending_total) }}</div>
+          </div>
+        </div>
+        <div class="stat-card navy">
+          <div class="stat-icon"><i class="ti ti-circle-check"></i></div>
+          <div>
+            <div class="stat-label">Paid Records</div>
+            <div class="stat-value">{{ paid_count }}</div>
+          </div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-icon"><i class="ti ti-alert-triangle"></i></div>
+          <div>
+            <div class="stat-label">Unpaid / Defaulters</div>
+            <div class="stat-value">{{ unpaid_count }} / {{ defaulter_count }}</div>
+          </div>
+        </div>
       </div>
 
       <div class="fee-actions-bar">

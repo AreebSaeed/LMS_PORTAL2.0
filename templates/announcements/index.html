@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — {{ school.name if school else 'School Portal' }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">{{ page_title }}</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Post School Announcement</div>
+        </div>
+        <div class="section-body">
+          <p style="color:var(--gray-500);font-size:14px;margin:0 0 16px;">
+            Visible to all teachers, students, and parents in your school.
+          </p>
+          <form method="POST" class="portal-form">
+            <div class="form-row">
+              <label class="field-label">Title</label>
+              <input class="form-input" type="text" name="title" required placeholder="e.g. Parent-Teacher Meeting" />
+            </div>
+            <div class="form-row">
+              <label class="field-label">Message</label>
+              <textarea class="form-input" name="body" rows="5" required placeholder="Write your announcement…"></textarea>
+            </div>
+            <button type="submit" class="action-btn btn-primary">
+              <i class="ti ti-speakerphone"></i> Post Announcement
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">All Announcements ({{ announcements|length }})</div>
+        </div>
+        <div class="section-body">
+          {% for a in announcements %}
+          <div class="announcement-item">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+              <div style="flex:1;">
+                <div class="announcement-title">{{ a.title }}</div>
+                <div class="announcement-body">{{ a.body or '' }}</div>
+                <div class="announcement-date">{{ a.created_at[:10] if a.created_at else '' }}</div>
+              </div>
+              <form method="POST" action="{{ url_for('announcements.delete', announcement_id=a.id) }}"
+                    onsubmit="return confirm('Delete this announcement?');">
+                <input type="hidden" name="action" value="delete" />
+                <button type="submit" class="action-btn btn-outline btn-sm" title="Delete">
+                  <i class="ti ti-trash"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+          {% else %}
+          <div class="empty-state">No announcements yet. Post your first update above.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}
