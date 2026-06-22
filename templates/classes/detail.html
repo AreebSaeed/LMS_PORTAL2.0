@@ -32,8 +32,24 @@
 
       <div class="stats-grid">
         <div class="stat-card"><div class="stat-label">Students</div><div class="stat-value">{{ students|length }}</div></div>
+        <div class="stat-card"><div class="stat-label">Subjects</div><div class="stat-value">{{ assigned_subjects|length }}</div></div>
         <div class="stat-card"><div class="stat-label">Assigned Teachers</div><div class="stat-value">{{ assigned_teachers|length }}</div></div>
-        <div class="stat-card"><div class="stat-label">Daily Attendance Entries</div><div class="stat-value">{{ daily_summary.total }}</div></div>
+        <div class="stat-card"><div class="stat-label">Marked Today</div><div class="stat-value">{{ daily_summary.total }} / {{ daily_summary.enrolled }}</div></div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Assigned Subjects</div></div>
+        <div class="section-body">
+          {% if assigned_subjects %}
+            <div class="subject-tag-list">
+              {% for s in assigned_subjects %}
+                <span class="tag-badge">{{ s.name }}{% if s.code %} ({{ s.code }}){% endif %}</span>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">No subjects assigned to this class yet.</div>
+          {% endif %}
+        </div>
       </div>
 
       <div class="dashboard-grid-2">
@@ -71,24 +87,8 @@
       <div class="section-card">
         <div class="section-header"><div class="section-title">Students in Class</div></div>
         <div class="section-body">
-          <form method="POST" action="{{ url_for('classes.assign_students', class_id=classroom.id) }}">
-            <div class="form-group">
-              <label class="form-label" for="student_ids">Assign Students to This Class</label>
-              <select id="student_ids" class="form-input" name="student_ids" multiple size="8">
-                {% for st in assignment_pool %}
-                  <option value="{{ st.id }}">
-                    {{ st.full_name }} ({{ st.admission_number or '—' }}){% if st.class_grade or st.section %} — Current: {{ st.class_grade or '—' }} {{ st.section or '' }}{% endif %}
-                  </option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="action-btn btn-primary">Assign Selected Students</button>
-            </div>
-          </form>
-
           {% if students %}
-            <div class="table-wrap" style="margin-top: 16px;">
+            <div class="table-wrap">
               <table class="data-table">
                 <thead>
                   <tr>
@@ -111,7 +111,7 @@
               </table>
             </div>
           {% else %}
-            <div class="empty-state">No students are assigned to this class yet.</div>
+            <div class="empty-state">No students are assigned to this class yet. Assign students from Student Management.</div>
           {% endif %}
         </div>
       </div>
@@ -125,7 +125,7 @@
               <input type="number" class="form-input" name="month" min="1" max="12" value="{{ attendance_month }}" />
               <button type="submit" class="action-btn btn-outline">Load</button>
             </form>
-            {% if student_attendance %}
+            {% if students %}
               <div class="table-wrap">
                 <table class="data-table">
                   <thead>
@@ -153,7 +153,7 @@
                 </table>
               </div>
             {% else %}
-              <div class="empty-state">No attendance records found for this month.</div>
+              <div class="empty-state">No students in this class to show attendance for.</div>
             {% endif %}
           </div>
         </div>

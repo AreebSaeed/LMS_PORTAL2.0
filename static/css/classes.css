@@ -27,3 +27,19 @@
   margin-top: 3px;
   accent-color: var(--primary);
 }
+
+.subject-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-badge {
+  display: inline-block;
+  background: var(--primary-light);
+  color: #1D4ED8;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 20px;
+}

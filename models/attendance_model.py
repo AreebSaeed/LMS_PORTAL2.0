@@ -73,7 +73,7 @@ def get_students_for_class(school_id: str, class_id: str = None, class_grade: st
     try:
         q = (
             supabase_admin.table("students")
-            .select("id, full_name, admission_number, roll_number, class_grade, section, class_id")
+            .select("id, full_name, admission_number, roll_number, class_grade, section, class_id, photo_url")
             .eq("school_id", school_id)
             .eq("status", "active")
             .order("full_name")
@@ -220,6 +220,86 @@ def get_monthly_report(school_id: str, year: int, month: int, class_id: str = No
         return _enrich_attendance_rows(rows)
     except Exception:
         return []
+
+
+def get_monthly_attendance_for_students(school_id: str, year: int, month: int, student_ids: list):
+    if not student_ids:
+        return []
+    start = date(year, month, 1).isoformat()
+    last_day = monthrange(year, month)[1]
+    end = date(year, month, last_day).isoformat()
+    try:
+        rows = (
+            supabase_admin.table("student_attendance")
+            .select("*")
+            .eq("school_id", school_id)
+            .in_("student_id", student_ids)
+            .gte("date", start)
+            .lte("date", end)
+            .execute()
+            .data or []
+        )
+        return rows
+    except Exception:
+        return []
+
+
+def build_monthly_attendance_summary(students: list, attendance_rows: list):
+    summary = {}
+    for student in students:
+        summary[student["id"]] = {
+            "student": student,
+            "present": 0,
+            "absent": 0,
+            "late": 0,
+            "leave": 0,
+            "total": 0,
+        }
+    for row in attendance_rows:
+        sid = row.get("student_id")
+        if sid not in summary:
+            continue
+        summary[sid]["total"] += 1
+        status = row.get("status")
+        if status in ("present", "absent", "late", "leave"):
+            summary[sid][status] += 1
+    return sorted(summary.values(), key=lambda r: (r["student"].get("full_name") or "").lower())
+
+
+def get_class_daily_summary(school_id: str, att_date: str, students: list):
+    enrolled = len(students)
+    if not students:
+        return {"enrolled": 0, "total": 0, "present": 0, "absent": 0, "late": 0, "leave": 0, "unmarked": 0}
+
+    student_ids = [s["id"] for s in students]
+    try:
+        rows = (
+            supabase_admin.table("student_attendance")
+            .select("status, student_id")
+            .eq("school_id", school_id)
+            .eq("date", att_date)
+            .in_("student_id", student_ids)
+            .execute()
+            .data or []
+        )
+    except Exception:
+        rows = []
+
+    present = sum(1 for r in rows if r["status"] == "present")
+    absent = sum(1 for r in rows if r["status"] == "absent")
+    late = sum(1 for r in rows if r["status"] == "late")
+    leave = sum(1 for r in rows if r["status"] == "leave")
+    marked = len(rows)
+
+    return {
+        "enrolled": enrolled,
+        "total": marked,
+        "present": present,
+        "absent": absent,
+        "late": late,
+        "leave": leave,
+        "unmarked": max(enrolled - marked, 0),
+    }
 
 
 def get_absent_students(school_id: str, att_date: str):

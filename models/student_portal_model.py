@@ -214,6 +214,11 @@ def get_subjects_for_student(student: dict, school_id: str):
     if not class_id:
         return []
     try:
+        from models.class_model import get_class_subjects
+        assigned = get_class_subjects(class_id, school_id)
+        if assigned:
+            return assigned
+
         slots = (
             supabase_admin.table("teacher_timetable")
             .select("subject_id")

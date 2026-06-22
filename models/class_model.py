@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from models.supabase_client import supabase_admin
+from models.teacher_model import get_or_create_subject
 
 
 def _now_iso():
@@ -17,6 +18,22 @@ def _class_label(row: dict) -> str:
     if grade:
         return f"{grade}{f' — {section}' if section else ''}"
     return "—"
+
+
+def _norm(value):
+    return (value or "").strip().lower()
+
+
+def _is_duplicate_class(school_id: str, name: str, grade: str, section: str, exclude_id: str = None) -> bool:
+    classes = list_classes(school_id)
+    target = (_norm(name), _norm(grade), _norm(section))
+    for cls in classes:
+        if exclude_id and cls.get("id") == exclude_id:
+            continue
+        current = (_norm(cls.get("name")), _norm(cls.get("grade")), _norm(cls.get("section")))
+        if current == target:
+            return True
+    return False
 
 
 def list_classes(school_id: str, query: str = None):
@@ -135,30 +152,96 @@ def _sync_class_teachers(class_id: str, school_id: str, teacher_ids: list):
         }).execute()
 
 
-def create_class(school_id: str, data: dict, teacher_ids: list = None):
+def get_class_subject_ids(class_id: str):
+    try:
+        rows = (
+            supabase_admin.table("class_subjects")
+            .select("subject_id")
+            .eq("class_id", class_id)
+            .execute()
+            .data or []
+        )
+        return [r["subject_id"] for r in rows if r.get("subject_id")]
+    except Exception:
+        return []
+
+
+def get_class_subjects(class_id: str, school_id: str):
+    subject_ids = get_class_subject_ids(class_id)
+    if not subject_ids:
+        return []
+    try:
+        return (
+            supabase_admin.table("subjects")
+            .select("*")
+            .eq("school_id", school_id)
+            .in_("id", subject_ids)
+            .order("name")
+            .execute()
+            .data or []
+        )
+    except Exception:
+        return []
+
+
+def _sync_class_subjects(class_id: str, school_id: str, subject_ids: list):
+    wanted = {s for s in (subject_ids or []) if s}
+    existing = set(get_class_subject_ids(class_id))
+
+    for sid in existing - wanted:
+        (
+            supabase_admin.table("class_subjects")
+            .delete()
+            .eq("class_id", class_id)
+            .eq("subject_id", sid)
+            .execute()
+        )
+
+    for sid in wanted - existing:
+        supabase_admin.table("class_subjects").insert({
+            "school_id": school_id,
+            "class_id": class_id,
+            "subject_id": sid,
+        }).execute()
+
+
+def _resolve_subject_ids(school_id: str, subject_ids: list = None, new_subjects: list = None):
+    ids = list(subject_ids or [])
+    for name in (new_subjects or []):
+        sid = get_or_create_subject(school_id, name)
+        if sid and sid not in ids:
+            ids.append(sid)
+    return ids
+
+
+def create_class(school_id: str, data: dict, teacher_ids: list = None, subject_ids: list = None, new_subjects: list = None):
     name = (data.get("name") or "").strip()
     grade = (data.get("grade") or "").strip()
     section = (data.get("section") or "").strip()
     if not name and grade:
         name = f"{grade}{f' {section}' if section else ''}"
+    if _is_duplicate_class(school_id, name, grade, section):
+        raise ValueError("This class already exists. Use a different name/grade/section.")
 
     payload = {
         "school_id": school_id,
         "name": name or None,
         "grade": grade or None,
         "section": section or None,
-        "updated_at": _now_iso(),
     }
     result = supabase_admin.table("classes").insert(payload).execute()
     row = result.data[0] if result.data else None
+    resolved_subject_ids = _resolve_subject_ids(school_id, subject_ids, new_subjects)
     if row and teacher_ids is not None:
         _sync_class_teachers(row["id"], school_id, teacher_ids)
+    if row and (subject_ids is not None or new_subjects):
+        _sync_class_subjects(row["id"], school_id, resolved_subject_ids)
     if row:
         row["label"] = _class_label(row)
     return row
 
 
-def update_class(class_id: str, school_id: str, data: dict, teacher_ids: list = None):
+def update_class(class_id: str, school_id: str, data: dict, teacher_ids: list = None, subject_ids: list = None, new_subjects: list = None):
     existing = get_class_by_id(class_id, school_id)
     if not existing:
         return None
@@ -168,12 +251,13 @@ def update_class(class_id: str, school_id: str, data: dict, teacher_ids: list = 
     section = (data.get("section") or "").strip()
     if not name and grade:
         name = f"{grade}{f' {section}' if section else ''}"
+    if _is_duplicate_class(school_id, name, grade, section, exclude_id=class_id):
+        raise ValueError("Another class with the same name/grade/section already exists.")
 
     payload = {
         "name": name or None,
         "grade": grade or None,
         "section": section or None,
-        "updated_at": _now_iso(),
     }
     result = (
         supabase_admin.table("classes")
@@ -183,8 +267,11 @@ def update_class(class_id: str, school_id: str, data: dict, teacher_ids: list = 
         .execute()
     )
     row = result.data[0] if result.data else None
+    resolved_subject_ids = _resolve_subject_ids(school_id, subject_ids, new_subjects)
     if row and teacher_ids is not None:
         _sync_class_teachers(class_id, school_id, teacher_ids)
+    if row and (subject_ids is not None or new_subjects):
+        _sync_class_subjects(class_id, school_id, resolved_subject_ids)
     if row:
         row["label"] = _class_label(row)
     return row
@@ -206,6 +293,7 @@ def delete_class(class_id: str, school_id: str):
             return False, "Cannot delete class with enrolled students. Reassign students first."
 
         supabase_admin.table("teacher_classes").delete().eq("class_id", class_id).execute()
+        supabase_admin.table("class_subjects").delete().eq("class_id", class_id).execute()
         result = (
             supabase_admin.table("classes")
             .delete()

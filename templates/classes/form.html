@@ -39,6 +39,29 @@
         </div>
 
         <div class="section-card">
+          <div class="section-header"><div class="section-title">Assign Subjects (Multiple Allowed)</div></div>
+          <div class="section-body">
+            {% if subjects %}
+              <div class="checkbox-list">
+                {% for s in subjects %}
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="subject_ids" value="{{ s.id }}" {% if s.id in selected_subject_ids %}checked{% endif %} />
+                    <span>{{ s.name }}{% if s.code %} ({{ s.code }}){% endif %}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="field-hint">No subjects yet — add comma-separated names below.</p>
+            {% endif %}
+            <div class="form-group" style="margin-top: 16px;">
+              <label class="form-label" for="new_subjects">Add New Subjects</label>
+              <input class="form-input" id="new_subjects" name="new_subjects" placeholder="e.g. Mathematics, Physics, English" />
+              <p class="field-hint">New subjects are created and assigned to this class automatically.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
           <div class="section-header"><div class="section-title">Assign Teachers (Multiple Allowed)</div></div>
           <div class="section-body">
             {% if teachers %}

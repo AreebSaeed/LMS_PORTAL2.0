@@ -20,55 +20,92 @@
         <div class="section-header">
           <div class="section-title">
             {{ class_info.name if class_info else class_grade }} {% if section %}— Section {{ section }}{% endif %}
-            · {{ att_date }}
+            · <span id="attendance-header-date">{{ att_date }}</span>
           </div>
-          {% if submitted %}<span class="badge badge-active">Submitted</span>{% else %}<span class="badge badge-inactive">Draft</span>{% endif %}
+          <span id="attendance-status-badge" class="badge {% if submitted %}badge-active{% else %}badge-inactive{% endif %}">
+            {% if submitted %}Submitted{% else %}Draft{% endif %}
+          </span>
         </div>
         <div class="section-body">
-          <form method="GET" class="search-bar" style="margin-bottom:20px;">
-            <input type="hidden" name="class_id" value="{{ class_id or '' }}" />
-            <input type="hidden" name="class_grade" value="{{ class_grade or '' }}" />
-            <input type="hidden" name="section" value="{{ section or '' }}" />
-            <input class="form-input" type="date" name="date" value="{{ att_date }}" />
-            <button type="submit" class="action-btn btn-outline">Change Date</button>
+          <div
+            id="attendance-mark-root"
+            class="attendance-date-toolbar"
+            data-fetch-url="{{ url_for('attendance.teacher_mark_data') }}"
+            data-class-id="{{ class_id or '' }}"
+            data-class-grade="{{ class_grade or '' }}"
+            data-section="{{ section or '' }}"
+          >
+            <label class="form-label" for="attendance-date-input">Attendance Date</label>
+            <input
+              type="date"
+              id="attendance-date-input"
+              class="form-input"
+              value="{{ att_date }}"
+              aria-label="Select attendance date"
+            />
             <a href="{{ url_for('attendance.teacher_index') }}" class="action-btn btn-outline">Back</a>
-          </form>
+            <span id="attendance-date-loading" class="attendance-date-loading" hidden>Loading…</span>
+          </div>
 
           {% if students %}
-          <form method="POST">
+          <form method="POST" class="attendance-mark-form">
             <input type="hidden" name="class_id" value="{{ class_id or '' }}" />
             <input type="hidden" name="class_grade" value="{{ class_grade or '' }}" />
             <input type="hidden" name="section" value="{{ section or '' }}" />
-            <input type="hidden" name="date" value="{{ att_date }}" />
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead><tr><th>Student</th><th>Roll No.</th><th>Status</th></tr></thead>
-                <tbody>
-                  {% for s in students %}
-                  {% set rec = existing.get(s.id) %}
-                  <tr>
-                    <td><strong>{{ s.full_name }}</strong></td>
-                    <td>{{ s.roll_number or '—' }}</td>
-                    <td>
-                      <select class="form-input status-select" name="status_{{ s.id }}" {% if submitted %}disabled{% endif %}>
-                        {% for st in statuses %}
-                        <option value="{{ st }}" {% if (rec and rec.status == st) or (not rec and st == 'present') %}selected{% endif %}>{{ st|capitalize }}</option>
-                        {% endfor %}
-                      </select>
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+            <input type="hidden" name="date" id="attendance-date-hidden" value="{{ att_date }}" />
+
+            <div class="attendance-mark-grid" id="attendance-mark-grid">
+              {% for s in students %}
+              {% set rec = existing.get(s.id) %}
+              {% set current = rec.status if rec else 'present' %}
+              {% set is_absent = current == 'absent' %}
+              <div
+                class="attendance-student-card {% if is_absent %}is-absent{% else %}is-present{% endif %}"
+                data-student-id="{{ s.id }}"
+              >
+                {% if s.photo_url %}
+                <img src="{{ s.photo_url }}" alt="{{ s.full_name }}" class="attendance-student-photo" />
+                {% else %}
+                <div class="attendance-student-photo placeholder">{{ s.full_name[0]|upper }}</div>
+                {% endif %}
+                <div class="attendance-student-name">{{ s.full_name }}</div>
+                {% if s.roll_number %}
+                <div class="attendance-student-roll">Roll {{ s.roll_number }}</div>
+                {% endif %}
+
+                <div class="attendance-btn-group {% if submitted %}readonly{% endif %}">
+                  <label class="attendance-mark-btn present {% if not is_absent %}active{% endif %}">
+                    <input
+                      type="radio"
+                      name="status_{{ s.id }}"
+                      value="present"
+                      {% if not is_absent %}checked{% endif %}
+                      {% if submitted %}disabled{% endif %}
+                    />
+                    P
+                  </label>
+                  <label class="attendance-mark-btn absent {% if is_absent %}active{% endif %}">
+                    <input
+                      type="radio"
+                      name="status_{{ s.id }}"
+                      value="absent"
+                      {% if is_absent %}checked{% endif %}
+                      {% if submitted %}disabled{% endif %}
+                    />
+                    A
+                  </label>
+                </div>
+              </div>
+              {% endfor %}
             </div>
-            {% if not submitted %}
-            <div class="form-actions">
+
+            <div class="form-actions attendance-form-actions" id="attendance-form-actions" {% if submitted %}hidden{% endif %}>
               <button type="submit" name="action" value="save" class="action-btn btn-outline">Save Draft</button>
               <button type="submit" name="action" value="submit" class="action-btn btn-primary">Submit to Admin</button>
             </div>
-            {% else %}
-            <p class="field-hint" style="margin-top:16px;">Submitted attendance cannot be edited. Contact admin for changes.</p>
-            {% endif %}
+            <p class="field-hint attendance-submitted-hint" id="attendance-submitted-hint" {% if not submitted %}hidden{% endif %}>
+              Submitted attendance cannot be edited. Contact admin for changes.
+            </p>
           </form>
           {% else %}
           <div class="empty-state">No active students in this class.</div>
@@ -78,4 +115,134 @@
     </div>
   </main>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  var root = document.getElementById('attendance-mark-root');
+  var dateInput = document.getElementById('attendance-date-input');
+  if (!root || !dateInput) return;
+
+  var loadingEl = document.getElementById('attendance-date-loading');
+  var headerDate = document.getElementById('attendance-header-date');
+  var statusBadge = document.getElementById('attendance-status-badge');
+  var hiddenDate = document.getElementById('attendance-date-hidden');
+  var formActions = document.getElementById('attendance-form-actions');
+  var submittedHint = document.getElementById('attendance-submitted-hint');
+  var grid = document.getElementById('attendance-mark-grid');
+
+  function bindRadioGroups() {
+    document.querySelectorAll('.attendance-btn-group:not(.readonly)').forEach(function (group) {
+      if (group.dataset.bound === '1') return;
+      group.dataset.bound = '1';
+      var card = group.closest('.attendance-student-card');
+      group.querySelectorAll('input[type="radio"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+          if (radio.disabled) return;
+          card.classList.toggle('is-present', radio.value === 'present' && radio.checked);
+          card.classList.toggle('is-absent', radio.value === 'absent' && radio.checked);
+          group.querySelectorAll('.attendance-mark-btn').forEach(function (btn) {
+            btn.classList.remove('active');
+          });
+          if (radio.checked) radio.parentElement.classList.add('active');
+        });
+      });
+    });
+  }
+
+  function setCardStatus(card, status, submitted) {
+    var isAbsent = status === 'absent';
+    card.classList.toggle('is-present', !isAbsent);
+    card.classList.toggle('is-absent', isAbsent);
+
+    var group = card.querySelector('.attendance-btn-group');
+    group.classList.toggle('readonly', submitted);
+
+    var presentRadio = card.querySelector('input[value="present"]');
+    var absentRadio = card.querySelector('input[value="absent"]');
+    var presentBtn = presentRadio && presentRadio.parentElement;
+    var absentBtn = absentRadio && absentRadio.parentElement;
+
+    if (presentRadio) {
+      presentRadio.checked = !isAbsent;
+      presentRadio.disabled = submitted;
+    }
+    if (absentRadio) {
+      absentRadio.checked = isAbsent;
+      absentRadio.disabled = submitted;
+    }
+    if (presentBtn) presentBtn.classList.toggle('active', !isAbsent);
+    if (absentBtn) absentBtn.classList.toggle('active', isAbsent);
+  }
+
+  function applyAttendanceData(data) {
+    if (headerDate) headerDate.textContent = data.date;
+    if (hiddenDate) hiddenDate.value = data.date;
+
+    if (statusBadge) {
+      statusBadge.textContent = data.submitted ? 'Submitted' : 'Draft';
+      statusBadge.className = 'badge ' + (data.submitted ? 'badge-active' : 'badge-inactive');
+    }
+
+    if (formActions) formActions.hidden = data.submitted;
+    if (submittedHint) submittedHint.hidden = !data.submitted;
+
+    if (grid) {
+      grid.querySelectorAll('.attendance-student-card').forEach(function (card) {
+        var sid = card.dataset.studentId;
+        var status = (data.records && data.records[sid]) || 'present';
+        setCardStatus(card, status, data.submitted);
+      });
+    }
+
+    bindRadioGroups();
+
+    var params = new URLSearchParams(window.location.search);
+    params.set('date', data.date);
+    if (root.dataset.classId) params.set('class_id', root.dataset.classId);
+    if (root.dataset.classGrade) params.set('class_grade', root.dataset.classGrade);
+    if (root.dataset.section) params.set('section', root.dataset.section);
+    var newUrl = window.location.pathname + '?' + params.toString();
+    window.history.replaceState({}, '', newUrl);
+  }
+
+  function fetchAttendanceForDate(attDate) {
+    var url = new URL(root.dataset.fetchUrl, window.location.origin);
+    url.searchParams.set('date', attDate);
+    if (root.dataset.classId) url.searchParams.set('class_id', root.dataset.classId);
+    if (root.dataset.classGrade) url.searchParams.set('class_grade', root.dataset.classGrade);
+    if (root.dataset.section) url.searchParams.set('section', root.dataset.section);
+
+    if (loadingEl) loadingEl.hidden = false;
+    if (grid) grid.style.opacity = '0.55';
+
+    return fetch(url.toString(), {
+      headers: { 'Accept': 'application/json' },
+      credentials: 'same-origin',
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error('Failed to load attendance');
+        return res.json();
+      })
+      .then(function (data) {
+        applyAttendanceData(data);
+      })
+      .catch(function () {
+        alert('Could not load attendance for the selected date.');
+        dateInput.value = hiddenDate ? hiddenDate.value : dateInput.value;
+      })
+      .finally(function () {
+        if (loadingEl) loadingEl.hidden = true;
+        if (grid) grid.style.opacity = '';
+      });
+  }
+
+  dateInput.addEventListener('change', function () {
+    if (!dateInput.value) return;
+    fetchAttendanceForDate(dateInput.value);
+  });
+
+  bindRadioGroups();
+})();
+</script>
 {% endblock %}

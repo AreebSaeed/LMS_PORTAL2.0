@@ -9,15 +9,20 @@ from models.class_model import (
     get_available_teachers,
     get_class_teachers,
     get_class_teacher_ids,
+    get_class_subjects,
+    get_class_subject_ids,
     create_class,
     update_class,
     delete_class,
     get_students_in_class,
-    get_students_for_assignment,
-    bulk_assign_students_to_class,
 )
-from models.attendance_model import get_daily_summary, get_monthly_report
+from models.attendance_model import (
+    get_class_daily_summary,
+    get_monthly_attendance_for_students,
+    build_monthly_attendance_summary,
+)
 from models.exam_model import list_exam_terms, get_term_results
+from models.teacher_model import get_subjects
 
 class_bp = Blueprint("classes", __name__)
 
@@ -39,6 +44,10 @@ def _form_data(form):
         "grade": form.get("grade", ""),
         "section": form.get("section", ""),
     }
+
+
+def _new_subjects_from_form(form):
+    return [s.strip() for s in form.get("new_subjects", "").split(",") if s.strip()]
 
 
 @class_bp.route("/")
@@ -71,19 +80,26 @@ def index():
 def add_class():
     school_id = session["school_id"]
     teachers = get_available_teachers(school_id)
+    subjects = get_subjects(school_id)
 
     if request.method == "POST":
         data = _form_data(request.form)
         teacher_ids = request.form.getlist("teacher_ids")
+        subject_ids = request.form.getlist("subject_ids")
+        new_subjects = _new_subjects_from_form(request.form)
         if not data["name"].strip() and not data["grade"].strip():
             flash("Class name or grade is required.", "error")
         else:
             try:
-                created = create_class(school_id, data, teacher_ids)
+                created = create_class(
+                    school_id, data, teacher_ids, subject_ids, new_subjects
+                )
                 if created:
                     flash("Class created successfully.", "success")
                     return redirect(url_for("classes.view_class", class_id=created["id"]))
                 flash("Could not create class.", "error")
+            except ValueError as err:
+                flash(str(err), "error")
             except Exception:
                 flash("Could not create class. Check for duplicate class setup.", "error")
 
@@ -91,7 +107,9 @@ def add_class():
     ctx.update({
         "classroom": None,
         "teachers": teachers,
+        "subjects": subjects,
         "selected_teacher_ids": [],
+        "selected_subject_ids": [],
         "form_action": url_for("classes.add_class"),
         "page_title": "Add Class",
     })
@@ -108,29 +126,16 @@ def view_class(class_id):
 
     students = get_students_in_class(class_id, school_id)
     assigned_teachers = get_class_teachers(class_id, school_id)
+    assigned_subjects = get_class_subjects(class_id, school_id)
     teacher_ids = get_class_teacher_ids(class_id)
 
     today = request.args.get("date", date.today().isoformat())
     year = request.args.get("year", type=int) or date.today().year
     month = request.args.get("month", type=int) or date.today().month
-    attendance_rows = get_monthly_report(school_id, year, month, class_id=class_id)
 
-    student_attendance = {}
-    for row in attendance_rows:
-        sid = row["student_id"]
-        if sid not in student_attendance:
-            student_attendance[sid] = {
-                "student": row.get("student") or {},
-                "present": 0,
-                "absent": 0,
-                "late": 0,
-                "leave": 0,
-                "total": 0,
-            }
-        student_attendance[sid]["total"] += 1
-        status = row.get("status")
-        if status in ("present", "absent", "late", "leave"):
-            student_attendance[sid][status] += 1
+    student_ids = [s["id"] for s in students]
+    attendance_rows = get_monthly_attendance_for_students(school_id, year, month, student_ids)
+    student_attendance = build_monthly_attendance_summary(students, attendance_rows)
 
     terms = list_exam_terms(school_id, class_id=class_id, limit=8)
     term_summaries = []
@@ -146,23 +151,22 @@ def view_class(class_id):
             "topper": results[0].get("student", {}) if results else {},
         })
 
-    daily_summary = get_daily_summary(school_id, today)
-    assignment_pool = get_students_for_assignment(school_id)
+    daily_summary = get_class_daily_summary(school_id, today, students)
 
     ctx = _admin_ctx()
     ctx.update({
         "classroom": classroom,
         "students": students,
         "assigned_teachers": assigned_teachers,
+        "assigned_subjects": assigned_subjects,
         "teacher_ids": teacher_ids,
         "all_teachers": get_available_teachers(school_id),
-        "student_attendance": list(student_attendance.values()),
+        "student_attendance": student_attendance,
         "daily_summary": daily_summary,
         "attendance_year": year,
         "attendance_month": month,
         "att_date": today,
         "term_summaries": term_summaries,
-        "assignment_pool": assignment_pool,
         "page_title": classroom.get("label") or "Class",
     })
     return render_template("classes/detail.html", **ctx)
@@ -177,20 +181,28 @@ def edit_class(class_id):
         abort(404)
 
     teachers = get_available_teachers(school_id)
+    subjects = get_subjects(school_id)
     selected_teacher_ids = get_class_teacher_ids(class_id)
+    selected_subject_ids = get_class_subject_ids(class_id)
 
     if request.method == "POST":
         data = _form_data(request.form)
         teacher_ids = request.form.getlist("teacher_ids")
+        subject_ids = request.form.getlist("subject_ids")
+        new_subjects = _new_subjects_from_form(request.form)
         if not data["name"].strip() and not data["grade"].strip():
             flash("Class name or grade is required.", "error")
         else:
             try:
-                updated = update_class(class_id, school_id, data, teacher_ids)
+                updated = update_class(
+                    class_id, school_id, data, teacher_ids, subject_ids, new_subjects
+                )
                 if updated:
                     flash("Class updated successfully.", "success")
                     return redirect(url_for("classes.view_class", class_id=class_id))
                 flash("Could not update class.", "error")
+            except ValueError as err:
+                flash(str(err), "error")
             except Exception:
                 flash("Could not update class.", "error")
 
@@ -198,7 +210,9 @@ def edit_class(class_id):
     ctx.update({
         "classroom": classroom,
         "teachers": teachers,
+        "subjects": subjects,
         "selected_teacher_ids": selected_teacher_ids,
+        "selected_subject_ids": selected_subject_ids,
         "form_action": url_for("classes.edit_class", class_id=class_id),
         "page_title": f"Edit Class — {classroom.get('label') or classroom.get('name')}",
     })
@@ -209,30 +223,14 @@ def edit_class(class_id):
 @school_admin_required
 def update_teachers(class_id):
     school_id = session["school_id"]
-    if not get_class_by_id(class_id, school_id):
+    classroom = get_class_by_id(class_id, school_id)
+    if not classroom:
         abort(404)
     teacher_ids = request.form.getlist("teacher_ids")
-    if update_class(class_id, school_id, get_class_by_id(class_id, school_id), teacher_ids):
+    if update_class(class_id, school_id, classroom, teacher_ids):
         flash("Class teacher assignments updated.", "success")
     else:
         flash("Could not update teacher assignments.", "error")
-    return redirect(url_for("classes.view_class", class_id=class_id))
-
-
-@class_bp.route("/<class_id>/assign-students", methods=["POST"])
-@school_admin_required
-def assign_students(class_id):
-    school_id = session["school_id"]
-    if not get_class_by_id(class_id, school_id):
-        abort(404)
-
-    student_ids = request.form.getlist("student_ids")
-    if not student_ids:
-        flash("Select at least one student to assign.", "error")
-        return redirect(url_for("classes.view_class", class_id=class_id))
-
-    count = bulk_assign_students_to_class(school_id, class_id, student_ids)
-    flash(f"Assigned {count} student(s) to this class.", "success" if count else "error")
     return redirect(url_for("classes.view_class", class_id=class_id))
 
 

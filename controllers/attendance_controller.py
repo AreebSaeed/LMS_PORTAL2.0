@@ -1,7 +1,7 @@
 from datetime import date
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
-    session, flash, abort, Response,
+    session, flash, abort, Response, jsonify,
 )
 from controllers.auth_helpers import school_admin_required, teacher_required
 from models.school_model import get_school_by_id
@@ -127,6 +127,35 @@ def teacher_mark():
         "page_title": "Daily Attendance",
     })
     return render_template("attendance/teacher_mark.html", **ctx)
+
+
+@attendance_bp.route("/teacher/mark/data")
+@teacher_required
+def teacher_mark_data():
+    school_id = session["school_id"]
+    class_id, class_grade, section, att_date = _class_params(request.args)
+
+    if not class_id and not class_grade:
+        return jsonify({"error": "Class is required."}), 400
+
+    if class_id:
+        from models.teacher_model import get_classes
+        for c in get_classes(school_id):
+            if c["id"] == class_id:
+                class_grade = c.get("grade") or c.get("name")
+                section = c.get("section")
+                break
+
+    existing = get_attendance_for_class_date(school_id, att_date, class_id, class_grade, section)
+    submitted = is_sheet_submitted(school_id, att_date, class_id, class_grade, section)
+
+    records = {sid: rec.get("status", "present") for sid, rec in existing.items()}
+
+    return jsonify({
+        "date": att_date,
+        "submitted": submitted,
+        "records": records,
+    })
 
 
 @attendance_bp.route("/teacher/class/<class_id>")
