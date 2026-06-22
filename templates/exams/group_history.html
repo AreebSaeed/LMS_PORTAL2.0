@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/exams.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% set active_nav = 'exams' %}
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+
+      <div class="exam-actions-bar">
+        <a href="{{ url_for('exams.history') }}" class="action-btn btn-outline">← All History</a>
+        <a href="{{ url_for('exams.group_analytics', group_id=group.id) }}" class="action-btn btn-primary">View Analytics</a>
+      </div>
+
+      <div class="exam-history-hero">
+        <div class="exam-history-hero-main">
+          <h2 class="exam-history-title">{{ group.name }}</h2>
+          <p class="exam-history-meta">
+            {{ 'Mid Term' if group.term_type == 'midterm' else 'Final Term' }}
+            · {{ group.academic_year or 'Academic year not set' }}
+            · Weight {{ group.weight_percent }}%
+          </p>
+          <p class="exam-history-meta">
+            Exam period: {{ group.start_date or '—' }}{% if group.end_date %} → {{ group.end_date }}{% endif %}
+            {% if group.published_at %} · Published {{ group.published_at[:10] }}{% endif %}
+          </p>
+        </div>
+        <div class="exam-history-hero-stats">
+          <div class="exam-history-stat">
+            <div class="exam-history-stat-val">{{ detail.total_students }}</div>
+            <div class="exam-history-stat-lbl">Students</div>
+          </div>
+          <div class="exam-history-stat">
+            <div class="exam-history-stat-val">{% if detail.school_avg is not none %}{{ detail.school_avg }}%{% else %}—{% endif %}</div>
+            <div class="exam-history-stat-lbl">School Average</div>
+          </div>
+          <div class="exam-history-stat">
+            <div class="exam-history-stat-val">{{ class_records|length }}</div>
+            <div class="exam-history-stat-lbl">Classes</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Class-wise Results</div></div>
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Class</th>
+                <th>Students</th>
+                <th>Class Average</th>
+                <th>Top Performer</th>
+                <th>Top Score</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rec in class_records %}
+              <tr>
+                <td><strong>{{ rec.class_label }}</strong></td>
+                <td>{{ rec.results_count }}</td>
+                <td>{% if rec.class_avg is not none %}{{ rec.class_avg }}%{% else %}—{% endif %}</td>
+                <td>{{ rec.top_student or '—' }}</td>
+                <td>
+                  {% if rec.top_percentage is not none %}
+                  {{ rec.top_percentage }}% <span class="badge badge-active">{{ rec.top_grade }}</span>
+                  {% else %}—{% endif %}
+                </td>
+                <td>
+                  {% if rec.results_count > 0 %}
+                  <a href="{{ url_for('exams.class_report', term_id=rec.term.id) }}" class="action-btn btn-outline btn-sm">Full Report</a>
+                  {% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="empty-state">No class results recorded for this exam.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

@@ -6,13 +6,8 @@
 {% endblock %}
 {% block body %}
 <div class="app-layout">
-  {% if use_admin_sidebar %}
-    {% set active_nav = 'exams' %}
-    {% include "partials/admin_sidebar.html" %}
-  {% else %}
-    {% set active_nav = 'exams' %}
-    {% include "teacher_portal/sidebar.html" %}
-  {% endif %}
+  {% set active_nav = 'exams' %}
+  {% include "partials/admin_sidebar.html" %}
   <main class="main-content">
     <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
     <div class="page-body">
@@ -21,41 +16,119 @@
       {% endwith %}
 
       <div class="page-actions">
-        {% if role == 'school_admin' %}
-        <a href="{{ url_for('exams.add_term') }}" class="action-btn btn-primary">+ Create Exam Term</a>
-        {% endif %}
+        <a href="{{ url_for('exams.add_term') }}" class="action-btn btn-primary">+ Create Exam</a>
+        <a href="{{ url_for('exams.history') }}" class="action-btn btn-outline">View Full History</a>
       </div>
 
-      <form method="GET" class="search-bar">
-        <select class="form-input" name="class_id" onchange="this.form.submit()">
-          <option value="">All classes</option>
-          {% for c in classes %}
-          <option value="{{ c.id }}" {% if filter_class == c.id %}selected{% endif %}>{{ c.name or c.grade }}{% if c.section %} — {{ c.section }}{% endif %}</option>
-          {% endfor %}
-        </select>
-      </form>
+      <div class="analytics-kpi-row exam-history-kpis">
+        <div class="analytics-kpi">
+          <div class="analytics-kpi-value">{{ history_summary.active_count }}</div>
+          <div class="analytics-kpi-label">Active Exams</div>
+        </div>
+        <div class="analytics-kpi">
+          <div class="analytics-kpi-value">{{ history_summary.published_count }}</div>
+          <div class="analytics-kpi-label">Published (History)</div>
+        </div>
+        <div class="analytics-kpi">
+          <div class="analytics-kpi-value">{{ history_summary.midterm_count }}</div>
+          <div class="analytics-kpi-label">Mid Terms Published</div>
+        </div>
+        <div class="analytics-kpi">
+          <div class="analytics-kpi-value">{{ history_summary.final_count }}</div>
+          <div class="analytics-kpi-label">Final Terms Published</div>
+        </div>
+      </div>
 
+      <div class="tab-bar exam-page-tabs">
+        <a href="{{ url_for('exams.index', tab='active') }}" class="tab-link {% if active_tab == 'active' %}active{% endif %}">Active Exams</a>
+        <a href="{{ url_for('exams.index', tab='history') }}" class="tab-link {% if active_tab == 'history' %}active{% endif %}">Results History</a>
+      </div>
+
+      {% if active_tab == 'active' %}
       <div class="section-card">
+        <div class="section-header"><div class="section-title">Active Examinations</div></div>
         <div class="section-body" style="padding:0;">
           <table class="data-table">
-            <thead><tr><th>Exam Term</th><th>Type</th><th>Class</th><th>Year</th><th>Status</th><th></th></tr></thead>
-            <tbody>
-              {% for t in terms %}
+            <thead>
               <tr>
-                <td><strong>{{ t.name }}</strong></td>
-                <td>{{ t.term_type|replace('_',' ')|title }}</td>
-                <td>{% for c in classes %}{% if c.id == t.class_id %}{{ c.name or c.grade }}{% if c.section %}-{{ c.section }}{% endif %}{% endif %}{% endfor %}</td>
-                <td>{{ t.academic_year or '—' }}</td>
-                <td>{% if t.is_published %}<span class="badge badge-active">Published</span>{% else %}<span class="badge badge-inactive">Draft</span>{% endif %}</td>
-                <td><a href="{{ url_for('exams.view_term', term_id=t.id) }}" class="action-btn btn-outline btn-sm">Manage</a></td>
+                <th>Exam</th>
+                <th>Type</th>
+                <th>Weight</th>
+                <th>Academic Year</th>
+                <th>Dates</th>
+                <th>Classes</th>
+                <th>Approval</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for g in groups %}
+              <tr>
+                <td><strong>{{ g.name }}</strong></td>
+                <td>{{ 'Mid Term' if g.term_type == 'midterm' else 'Final Term' }}</td>
+                <td>{{ g.weight_percent }}%</td>
+                <td>{{ g.academic_year or '—' }}</td>
+                <td>
+                  {% if g.start_date %}{{ g.start_date }}{% else %}—{% endif %}
+                  {% if g.end_date %} → {{ g.end_date }}{% endif %}
+                </td>
+                <td>{{ g.class_count or 0 }}</td>
+                <td>
+                  <span class="badge badge-active">{{ g.approved_count or 0 }} approved</span>
+                  {% if g.submitted_count %}<span class="badge badge-inactive">{{ g.submitted_count }} pending</span>{% endif %}
+                </td>
+                <td>
+                  <a href="{{ url_for('exams.view_group', group_id=g.id) }}" class="action-btn btn-outline btn-sm">Manage</a>
+                </td>
               </tr>
               {% else %}
-              <tr><td colspan="6" class="empty-state">No exam terms yet.{% if role == 'school_admin' %} Create one to get started.{% endif %}</td></tr>
+              <tr><td colspan="8" class="empty-state">No active exams. Create one to schedule Mid Term or Final Term for all classes.</td></tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
+      {% else %}
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Published Results History</div>
+          <a href="{{ url_for('exams.history') }}" class="action-btn btn-outline btn-sm">Browse All →</a>
+        </div>
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Exam</th>
+                <th>Type</th>
+                <th>Academic Year</th>
+                <th>Published</th>
+                <th>Students</th>
+                <th>School Avg</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for g in history_groups %}
+              <tr>
+                <td><strong>{{ g.name }}</strong></td>
+                <td>{{ 'Mid Term' if g.term_type == 'midterm' else 'Final Term' }}</td>
+                <td>{{ g.academic_year or '—' }}</td>
+                <td>{{ g.published_at[:10] if g.published_at else '—' }}</td>
+                <td>{{ g.published_students or g.total_students or 0 }}</td>
+                <td>{% if g.school_avg is not none %}{{ g.school_avg }}%{% else %}—{% endif %}</td>
+                <td>
+                  <a href="{{ url_for('exams.group_history', group_id=g.id) }}" class="action-btn btn-outline btn-sm">View</a>
+                  <a href="{{ url_for('exams.group_analytics', group_id=g.id) }}" class="action-btn btn-outline btn-sm">Analytics</a>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="7" class="empty-state">No published exam results yet. Publish an exam to build history.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
     </div>
   </main>
 </div>

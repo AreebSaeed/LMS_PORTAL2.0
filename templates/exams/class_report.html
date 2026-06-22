@@ -11,6 +11,7 @@
   <main class="main-content">
     <div class="topbar"><div class="topbar-title">{{ page_title }}</div></div>
     <div class="page-body">
+      <a href="{{ url_for('exams.view_term', term_id=term.id) }}" class="action-btn btn-outline" style="margin-bottom:16px;">← Back</a>
       <div class="section-card"><div class="section-body" style="padding:0;overflow-x:auto;">
         <table class="data-table">
           <thead><tr><th>Rank</th><th>Student</th><th>Roll</th><th>Total</th><th>%</th><th>Grade</th><th>Result Card</th></tr></thead>
@@ -28,7 +29,7 @@
                 <a href="{{ url_for('exams.result_pdf', term_id=term.id, student_id=r.student_id) }}" class="action-btn btn-outline btn-sm">PDF</a>
               </td>
             </tr>
-            {% else %}<tr><td colspan="7" class="empty-state">No results yet. Enter marks and click Calculate.</td></tr>{% endfor %}
+            {% else %}<tr><td colspan="7" class="empty-state">No results yet. Teachers must enter marks and submit for approval.</td></tr>{% endfor %}
           </tbody>
         </table>
       </div></div>

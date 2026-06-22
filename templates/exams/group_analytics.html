@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/exams.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% set active_nav = 'exams' %}
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+
+      <div class="exam-actions-bar">
+        <a href="{{ url_for('exams.view_group', group_id=group.id) }}" class="action-btn btn-outline">← Back to Exam</a>
+      </div>
+
+      <div class="analytics-dashboard">
+        <div class="analytics-kpi-row">
+          <div class="analytics-kpi">
+            <div class="analytics-kpi-value">{{ analytics.terms|length }}</div>
+            <div class="analytics-kpi-label">Classes</div>
+          </div>
+          <div class="analytics-kpi">
+            <div class="analytics-kpi-value">{{ analytics.submission_stats.get('approved', 0) }}</div>
+            <div class="analytics-kpi-label">Approved</div>
+          </div>
+          <div class="analytics-kpi">
+            <div class="analytics-kpi-value">{{ analytics.submission_stats.get('submitted', 0) }}</div>
+            <div class="analytics-kpi-label">Awaiting Review</div>
+          </div>
+          <div class="analytics-kpi">
+            <div class="analytics-kpi-value">
+              {% set avgs = analytics.class_averages | selectattr('students') | list %}
+              {% if avgs %}{{ (avgs | sum(attribute='avg') / avgs|length) | round(1) }}%{% else %}—{% endif %}
+            </div>
+            <div class="analytics-kpi-label">School Avg</div>
+          </div>
+        </div>
+
+        <div class="analytics-charts-grid">
+          <div class="section-card analytics-chart-card">
+            <div class="section-header"><div class="section-title">Class Average Performance</div></div>
+            <div class="section-body"><canvas id="classAvgChart" height="120"></canvas></div>
+          </div>
+          <div class="section-card analytics-chart-card">
+            <div class="section-header"><div class="section-title">Grade Distribution</div></div>
+            <div class="section-body"><canvas id="gradeChart" height="120"></canvas></div>
+          </div>
+        </div>
+
+        <div class="section-card analytics-chart-card">
+          <div class="section-header"><div class="section-title">Subject Performance by Class</div></div>
+          <div class="section-body"><canvas id="subjectChart" height="80"></canvas></div>
+        </div>
+
+        <div class="analytics-split-grid">
+          <div class="section-card">
+            <div class="section-header"><div class="section-title">Top Performers</div></div>
+            <div class="section-body" style="padding:0;">
+              <table class="data-table">
+                <thead><tr><th>Student</th><th>Class</th><th>%</th><th>Grade</th></tr></thead>
+                <tbody>
+                  {% for p in analytics.top_performers %}
+                  <tr>
+                    <td>{{ p.student_name }}</td>
+                    <td>{{ p.class_label }}</td>
+                    <td>{{ p.percentage }}%</td>
+                    <td><span class="badge badge-active">{{ p.grade }}</span></td>
+                  </tr>
+                  {% else %}
+                  <tr><td colspan="4" class="empty-state">No results calculated yet.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-header"><div class="section-title">Subject Pass Rates</div></div>
+            <div class="section-body" style="padding:0; max-height:360px; overflow:auto;">
+              <table class="data-table">
+                <thead><tr><th>Class</th><th>Subject</th><th>Avg %</th><th>Pass Rate</th></tr></thead>
+                <tbody>
+                  {% for s in analytics.subject_analytics %}
+                  <tr>
+                    <td>{{ s.class_label }}</td>
+                    <td>{{ s.subject_name }}</td>
+                    <td>{{ s.avg_pct }}%</td>
+                    <td>{{ s.pass_rate }}%</td>
+                  </tr>
+                  {% else %}
+                  <tr><td colspan="4" class="empty-state">Subject analytics appear after marks are entered.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  const classData = {{ analytics.class_averages | tojson }};
+  const gradeData = {{ analytics.grade_distribution | tojson }};
+  const subjectData = {{ analytics.subject_analytics | tojson }};
+
+  const chartColors = ['#2563eb','#0ea5e9','#10b981','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316'];
+
+  if (classData.length) {
+    new Chart(document.getElementById('classAvgChart'), {
+      type: 'bar',
+      data: {
+        labels: classData.map(c => c.label),
+        datasets: [{
+          label: 'Average %',
+          data: classData.map(c => c.avg),
+          backgroundColor: chartColors.map((c, i) => c + 'cc'),
+          borderRadius: 8,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } } }
+      }
+    });
+  }
+
+  const gradeLabels = Object.keys(gradeData).filter(k => gradeData[k] > 0);
+  if (gradeLabels.length) {
+    new Chart(document.getElementById('gradeChart'), {
+      type: 'doughnut',
+      data: {
+        labels: gradeLabels,
+        datasets: [{
+          data: gradeLabels.map(k => gradeData[k]),
+          backgroundColor: chartColors,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+
+  if (subjectData.length) {
+    const labels = subjectData.map(s => s.class_label + ' — ' + s.subject_name);
+    new Chart(document.getElementById('subjectChart'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Average %',
+            data: subjectData.map(s => s.avg_pct),
+            backgroundColor: '#2563ebaa',
+            borderRadius: 6,
+          },
+          {
+            label: 'Pass Rate %',
+            data: subjectData.map(s => s.pass_rate),
+            backgroundColor: '#10b981aa',
+            borderRadius: 6,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        indexAxis: labels.length > 8 ? 'y' : 'x',
+        scales: { x: { beginAtZero: true, max: 100 }, y: { beginAtZero: true, max: 100 } }
+      }
+    });
+  }
+})();
+</script>
+{% endblock %}

@@ -113,7 +113,7 @@
                 <div class="list-item-title">{{ exam.title }}</div>
                 <div class="list-item-meta">{{ exam.exam_date }}</div>
               </div>
-              <a href="{{ url_for('teacher_portal.marks', exam_id=exam.id) }}" class="action-btn btn-outline btn-sm">Enter Marks</a>
+              <a href="{{ url_for('exams.index') }}" class="action-btn btn-outline btn-sm">Open Exams</a>
             </div>
             {% else %}
             <div class="empty-state">No upcoming exams.</div>

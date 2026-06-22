@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/exams.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% set active_nav = 'exams' %}
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <div class="exam-actions-bar">
+        <a href="{{ url_for('exams.index') }}" class="action-btn btn-outline">← Back to Exams</a>
+        <a href="{{ url_for('exams.add_term') }}" class="action-btn btn-primary">+ Create Exam</a>
+      </div>
+
+      <div class="analytics-kpi-row exam-history-kpis">
+        <div class="analytics-kpi">
+          <div class="analytics-kpi-value">{{ summary.published_count }}</div>
+          <div class="analytics-kpi-label">Total Published</div>
+        </div>
+        <div class="analytics-kpi">
+          <div class="analytics-kpi-value">{{ summary.midterm_count }}</div>
+          <div class="analytics-kpi-label">Mid Terms</div>
+        </div>
+        <div class="analytics-kpi">
+          <div class="analytics-kpi-value">{{ summary.final_count }}</div>
+          <div class="analytics-kpi-label">Final Terms</div>
+        </div>
+        <div class="analytics-kpi">
+          <div class="analytics-kpi-value">{{ summary.active_count }}</div>
+          <div class="analytics-kpi-label">Currently Active</div>
+        </div>
+      </div>
+
+      <form method="GET" class="search-bar exam-history-filters">
+        <select class="form-input" name="academic_year" onchange="this.form.submit()">
+          <option value="">All academic years</option>
+          {% for y in years %}
+          <option value="{{ y }}" {% if filter_year == y %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+        <select class="form-input" name="term_type" onchange="this.form.submit()">
+          <option value="">All types</option>
+          <option value="midterm" {% if filter_type == 'midterm' %}selected{% endif %}>Mid Term</option>
+          <option value="final" {% if filter_type == 'final' %}selected{% endif %}>Final Term</option>
+        </select>
+        {% if filter_year or filter_type %}
+        <a href="{{ url_for('exams.history') }}" class="action-btn btn-outline btn-sm">Clear Filters</a>
+        {% endif %}
+      </form>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Exam & Results Archive</div></div>
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Exam</th>
+                <th>Type</th>
+                <th>Weight</th>
+                <th>Academic Year</th>
+                <th>Exam Period</th>
+                <th>Published On</th>
+                <th>Classes</th>
+                <th>Students</th>
+                <th>School Avg</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for g in history_groups %}
+              <tr>
+                <td><strong>{{ g.name }}</strong></td>
+                <td><span class="badge {% if g.term_type == 'final' %}badge-active{% else %}badge-inactive{% endif %}">{{ 'Mid Term' if g.term_type == 'midterm' else 'Final Term' }}</span></td>
+                <td>{{ g.weight_percent }}%</td>
+                <td>{{ g.academic_year or '—' }}</td>
+                <td>
+                  {{ g.start_date or '—' }}
+                  {% if g.end_date %} → {{ g.end_date }}{% endif %}
+                </td>
+                <td>{{ g.published_at[:10] if g.published_at else '—' }}</td>
+                <td>{{ g.class_count or 0 }}</td>
+                <td>{{ g.published_students or g.total_students or 0 }}</td>
+                <td>
+                  {% if g.school_avg is not none %}
+                  <strong>{{ g.school_avg }}%</strong>
+                  {% else %}—{% endif %}
+                </td>
+                <td class="exam-row-actions">
+                  <a href="{{ url_for('exams.group_history', group_id=g.id) }}" class="action-btn btn-outline btn-sm">Details</a>
+                  <a href="{{ url_for('exams.group_analytics', group_id=g.id) }}" class="action-btn btn-outline btn-sm">Analytics</a>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="10" class="empty-state">
+                  {% if filter_year or filter_type %}
+                  No published exams match your filters.
+                  {% else %}
+                  No published exam history yet. Approve and publish results to build the archive.
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

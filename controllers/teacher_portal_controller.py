@@ -236,50 +236,7 @@ def homework_submissions(homework_id):
 @teacher_portal_bp.route("/marks", methods=["GET", "POST"])
 @teacher_required
 def marks():
-    teacher = _load_teacher()
-    school_id = session["school_id"]
-    exams = get_exams_for_teacher(teacher["id"], school_id)
-    exam_id = request.args.get("exam_id") or request.form.get("exam_id")
-    class_id = request.args.get("class_id") or request.form.get("class_id")
-
-    selected_exam = None
-    student_list = []
-    existing = {}
-
-    if exam_id:
-        selected_exam = next((e for e in exams if e["id"] == exam_id), None)
-        if not selected_exam:
-            abort(404)
-        if selected_exam.get("class_id") and not teacher_owns_class(teacher["id"], selected_exam["class_id"]):
-            abort(403)
-        cid = selected_exam.get("class_id") or class_id
-        if cid:
-            student_list = get_students_for_teacher_class(teacher["id"], school_id, cid)
-        existing = get_exam_results_for_exam(exam_id, school_id)
-
-    if request.method == "POST" and exam_id and student_list:
-        max_marks = float(request.form.get("max_marks") or 100)
-        marks_data = {}
-        for s in student_list:
-            sid = s["id"]
-            marks_data[sid] = {
-                "marks": request.form.get(f"marks_{sid}", ""),
-                "grade": request.form.get(f"grade_{sid}", ""),
-                "remarks": request.form.get(f"remarks_{sid}", ""),
-            }
-        count = save_exam_marks(exam_id, school_id, marks_data, max_marks)
-        flash(f"Saved marks for {count} student(s).", "success")
-        return redirect(url_for("teacher_portal.marks", exam_id=exam_id))
-
-    ctx = _ctx("marks", teacher)
-    ctx.update({
-        "exams": exams,
-        "selected_exam": selected_exam,
-        "students": student_list,
-        "existing": existing,
-        "page_title": "Enter Marks",
-    })
-    return render_template("teacher_portal/marks.html", **ctx)
+    return redirect(url_for("exams.index"))
 
 
 @teacher_portal_bp.route("/announcements", methods=["GET", "POST"])

@@ -14,43 +14,47 @@
       {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
 
       <div class="exam-actions-bar">
+        {% if role != 'school_admin' and term.submission_status not in ('submitted', 'approved') %}
         <a href="{{ url_for('exams.enter_marks', term_id=term.id) }}" class="action-btn btn-primary">Enter Marks</a>
-        <form method="POST" action="{{ url_for('exams.calculate', term_id=term.id) }}" style="display:inline;"><button type="submit" class="action-btn btn-outline">Calculate Totals & Ranks</button></form>
+        <form method="POST" action="{{ url_for('exams.submit_results', term_id=term.id) }}" style="display:inline;" onsubmit="return confirm('Submit class results to admin for approval?');">
+          <button type="submit" class="action-btn btn-outline">Submit for Approval</button>
+        </form>
+        {% endif %}
+        {% if results_count > 0 %}
         <a href="{{ url_for('exams.class_report', term_id=term.id) }}" class="action-btn btn-outline">Class Report</a>
-        {% if role == 'school_admin' %}
-        <form method="POST" action="{{ url_for('exams.publish', term_id=term.id) }}" style="display:inline;"><button type="submit" class="action-btn btn-outline">Publish Results</button></form>
-        <form method="POST" action="{{ url_for('exams.share_parents', term_id=term.id) }}" style="display:inline;"><button type="submit" class="action-btn btn-outline">Notify Parents</button></form>
         {% endif %}
         <a href="{{ url_for('exams.index') }}" class="action-btn btn-outline">Back</a>
       </div>
 
-      <div class="stats-grid" style="margin-bottom:20px;">
-        <div class="stat-card"><div class="stat-label">Type</div><div class="stat-value" style="font-size:16px;">{{ term.term_type|replace('_',' ')|title }}</div></div>
+      <div class="stats-grid exam-stats-grid">
+        <div class="stat-card"><div class="stat-label">Type</div><div class="stat-value stat-value-sm">{{ 'Mid Term' if term.term_type == 'midterm' else 'Final Term' }}</div></div>
         <div class="stat-card"><div class="stat-label">Subjects</div><div class="stat-value">{{ papers|length }}</div></div>
         <div class="stat-card green"><div class="stat-label">Results</div><div class="stat-value">{{ results_count }}</div></div>
-        <div class="stat-card {% if term.is_published %}green{% else %}yellow{% endif %}"><div class="stat-label">Status</div><div class="stat-value" style="font-size:16px;">{% if term.is_published %}Published{% else %}Draft{% endif %}</div></div>
+        <div class="stat-card">
+          <div class="stat-label">Submission</div>
+          <div class="stat-value stat-value-sm">{{ submission_statuses.get(term.submission_status or 'pending', 'Pending') }}</div>
+        </div>
       </div>
 
+      {% if term.rejection_note %}
+      <div class="flash-error" style="margin-bottom:16px;">Admin note: {{ term.rejection_note }}</div>
+      {% endif %}
+
       <div class="section-card">
-        <div class="section-header"><div class="section-title">Subjects & Marks Distribution</div></div>
-        <div class="section-body">
-          <form method="POST" action="{{ url_for('exams.add_paper', term_id=term.id) }}" class="inline-form" style="margin-bottom:20px;">
-            <select class="form-input" name="subject_id" required style="width:auto;"><option value="">Add subject</option>{% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select>
-            <input class="form-input" type="number" name="max_marks" value="100" placeholder="Max" style="width:80px;" />
-            <input class="form-input" type="number" name="pass_marks" value="33" placeholder="Pass" style="width:80px;" />
-            <input class="form-input" type="number" name="weight_percent" value="100" placeholder="Weight %" style="width:90px;" />
-            <input class="form-input" type="date" name="exam_date" style="width:auto;" />
-            <button type="submit" class="action-btn btn-primary btn-sm">Add</button>
-          </form>
+        <div class="section-header"><div class="section-title">Assigned Subjects</div></div>
+        <div class="section-body" style="padding:0;">
           <table class="data-table">
-            <thead><tr><th>Subject</th><th>Max Marks</th><th>Pass</th><th>Weight %</th><th>Date</th><th></th></tr></thead>
+            <thead><tr><th>Subject</th><th>Max Marks</th><th>Pass Marks</th></tr></thead>
             <tbody>
               {% for p in papers %}
               <tr>
-                <td>{{ p.subject_name }}</td><td>{{ p.max_marks }}</td><td>{{ p.pass_marks }}</td><td>{{ p.weight_percent }}%</td><td>{{ p.exam_date or '—' }}</td>
-                <td><form method="POST" action="{{ url_for('exams.remove_paper', paper_id=p.id) }}"><input type="hidden" name="term_id" value="{{ term.id }}" /><button type="submit" class="action-btn btn-outline btn-sm">Remove</button></form></td>
+                <td>{{ p.subject_name }}</td>
+                <td>{{ p.max_marks }}</td>
+                <td>{{ p.pass_marks }}</td>
               </tr>
-              {% else %}<tr><td colspan="6" class="empty-state">Add subjects to this exam term.</td></tr>{% endfor %}
+              {% else %}
+              <tr><td colspan="3" class="empty-state">No subjects assigned to this class. Assign subjects in Class Management.</td></tr>
+              {% endfor %}
             </tbody>
           </table>
         </div>

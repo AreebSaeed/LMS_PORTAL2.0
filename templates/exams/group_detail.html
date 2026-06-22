@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/exams.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% set active_nav = 'exams' %}
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+
+      <div class="exam-actions-bar">
+        <a href="{{ url_for('exams.group_analytics', group_id=group.id) }}" class="action-btn btn-primary">View Analytics</a>
+        {% if not group.is_published %}
+        <form method="POST" action="{{ url_for('exams.publish_group', group_id=group.id) }}" style="display:inline;" onsubmit="return confirm('Publish approved results to student & parent portals and notify parents?');">
+          <button type="submit" class="action-btn btn-outline">Publish Results</button>
+        </form>
+        {% endif %}
+        {% if group.is_published %}
+        <a href="{{ url_for('exams.group_history', group_id=group.id) }}" class="action-btn btn-outline">View History</a>
+        {% endif %}
+        <a href="{{ url_for('exams.index') }}" class="action-btn btn-outline">Back</a>
+      </div>
+
+      <div class="stats-grid exam-stats-grid">
+        <div class="stat-card"><div class="stat-label">Type</div><div class="stat-value stat-value-sm">{{ 'Mid Term' if group.term_type == 'midterm' else 'Final Term' }}</div></div>
+        <div class="stat-card"><div class="stat-label">Weightage</div><div class="stat-value">{{ group.weight_percent }}%</div></div>
+        <div class="stat-card"><div class="stat-label">Academic Year</div><div class="stat-value stat-value-sm">{{ group.academic_year or '—' }}</div></div>
+        <div class="stat-card"><div class="stat-label">Exam Period</div><div class="stat-value stat-value-sm">{{ group.start_date or '—' }}{% if group.end_date %} → {{ group.end_date }}{% endif %}</div></div>
+        <div class="stat-card {% if group.is_published %}green{% else %}yellow{% endif %}"><div class="stat-label">Status</div><div class="stat-value stat-value-sm">{% if group.is_published %}Published{% else %}Draft{% endif %}</div></div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Class Results — Teacher Submissions</div></div>
+        <div class="section-body" style="padding:0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Class</th>
+                <th>Subjects</th>
+                <th>Results</th>
+                <th>Submission</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in terms %}
+              <tr>
+                <td><strong>{{ t.class_label }}</strong></td>
+                <td>{{ t.papers_count }}</td>
+                <td>{{ t.results_count }} students</td>
+                <td>
+                  {% set st = t.submission_status or 'pending' %}
+                  <span class="badge {% if st == 'approved' %}badge-active{% elif st == 'submitted' %}badge-inactive{% elif st == 'rejected' %}badge-danger{% else %}badge-inactive{% endif %}">
+                    {{ submission_statuses.get(st, st) }}
+                  </span>
+                  {% if t.rejection_note %}<div class="text-muted text-sm">{{ t.rejection_note }}</div>{% endif %}
+                </td>
+                <td class="exam-row-actions">
+                  {% if t.results_count > 0 %}
+                  <a href="{{ url_for('exams.class_report', term_id=t.id) }}" class="action-btn btn-outline btn-sm">Review</a>
+                  {% endif %}
+                  {% if t.submission_status == 'submitted' %}
+                  <form method="POST" action="{{ url_for('exams.approve_results', term_id=t.id) }}" style="display:inline;">
+                    <button type="submit" class="action-btn btn-primary btn-sm">Approve</button>
+                  </form>
+                  <form method="POST" action="{{ url_for('exams.reject_results', term_id=t.id) }}" class="reject-form" style="display:inline;">
+                    <input type="hidden" name="rejection_note" value="" class="reject-note-input" />
+                    <button type="button" class="action-btn btn-outline btn-sm reject-btn">Reject</button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="empty-state">No class records found for this exam.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+document.querySelectorAll('.reject-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var note = prompt('Optional note for teacher (reason for rejection):');
+    if (note === null) return;
+    var form = btn.closest('.reject-form');
+    form.querySelector('.reject-note-input').value = note;
+    form.submit();
+  });
+});
+</script>
+{% endblock %}

@@ -7,21 +7,29 @@ from models.school_model import get_school_by_id
 from models.teacher_model import get_teacher_by_user_id, get_subjects, get_classes, get_assigned_classes
 from models.student_model import get_student_by_id
 from models.exam_model import (
-    EXAM_TERM_TYPES,
+    EXAM_ADMIN_TYPES,
+    SUBMISSION_STATUSES,
     list_exam_terms,
+    list_exam_groups,
+    get_exam_group,
+    get_terms_for_group,
+    get_exam_history_years,
+    get_exam_history_summary,
+    get_group_history_detail,
+    create_school_exam,
     get_exam_term,
-    create_exam_term,
     get_exam_papers,
-    add_exam_paper,
-    delete_exam_paper,
     get_marks_matrix,
     save_subject_marks,
     calculate_term_results,
     get_term_results,
     get_student_term_result,
     get_student_subject_marks,
-    publish_term_results,
-    share_results_with_parents,
+    submit_class_results,
+    approve_class_results,
+    reject_class_results,
+    publish_exam_group,
+    get_exam_group_analytics,
     get_student_result_history,
     teacher_can_access_term,
     generate_result_pdf,
@@ -51,7 +59,8 @@ def _ctx(active_nav: str, use_admin_sidebar: bool = True):
         "use_admin_sidebar": use_admin_sidebar and role == "school_admin",
         "classes": classes,
         "subjects": get_subjects(school_id),
-        "term_types": EXAM_TERM_TYPES,
+        "term_types": EXAM_ADMIN_TYPES,
+        "submission_statuses": SUBMISSION_STATUSES,
     }
 
 
@@ -68,50 +77,181 @@ def _check_term_access(term):
 @staff_exam_required
 def index():
     school_id = session["school_id"]
+    is_admin = session.get("role") == "school_admin"
+
+    if is_admin:
+        tab = request.args.get("tab", "active")
+        if tab not in ("active", "history"):
+            tab = "active"
+
+        active_groups = list_exam_groups(school_id, published_only=False)
+        history_summary = get_exam_history_summary(school_id)
+        if tab == "history":
+            history_groups = list_exam_groups(school_id, published_only=True, limit=50)
+        else:
+            history_groups = list_exam_groups(school_id, published_only=True, limit=5)
+
+        ctx = _ctx("exams")
+        ctx.update({
+            "groups": active_groups,
+            "history_groups": history_groups,
+            "history_summary": history_summary,
+            "active_tab": tab,
+            "page_title": "Exam & Results",
+        })
+        return render_template("exams/list_admin.html", **ctx)
+
     class_id = request.args.get("class_id") or None
     teacher_id = _load_teacher_id()
     terms = list_exam_terms(school_id, class_id)
     if teacher_id:
         allowed = {c["id"] for c in get_assigned_classes(teacher_id)}
-        terms = [t for t in terms if not t.get("class_id") or t["class_id"] in allowed]
+        terms = [t for t in terms if t.get("class_id") in allowed]
 
     ctx = _ctx("exams")
     ctx.update({"terms": terms, "filter_class": class_id, "page_title": "Exam & Results"})
-    template = "exams/list_admin.html" if session.get("role") == "school_admin" else "exams/list_teacher.html"
-    return render_template(template, **ctx)
+    return render_template("exams/list_teacher.html", **ctx)
 
 
+@exam_bp.route("/history")
+@staff_exam_required
+def history():
+    if session.get("role") != "school_admin":
+        abort(403)
+
+    school_id = session["school_id"]
+    academic_year = request.args.get("academic_year") or None
+    term_type = request.args.get("term_type") or None
+
+    history_groups = list_exam_groups(
+        school_id,
+        published_only=True,
+        academic_year=academic_year,
+        term_type=term_type if term_type in ("midterm", "final") else None,
+        limit=200,
+    )
+    years = get_exam_history_years(school_id)
+    summary = get_exam_history_summary(school_id)
+
+    ctx = _ctx("exams")
+    ctx.update({
+        "history_groups": history_groups,
+        "years": years,
+        "summary": summary,
+        "filter_year": academic_year,
+        "filter_type": term_type,
+        "page_title": "Exam & Results History",
+    })
+    return render_template("exams/history.html", **ctx)
+
+
+@exam_bp.route("/groups/<group_id>/history")
+@staff_exam_required
+def group_history(group_id):
+    if session.get("role") != "school_admin":
+        abort(403)
+
+    school_id = session["school_id"]
+    detail = get_group_history_detail(group_id, school_id)
+    if not detail:
+        abort(404)
+
+    ctx = _ctx("exams")
+    ctx.update({
+        "detail": detail,
+        "group": detail["group"],
+        "class_records": detail["class_records"],
+        "page_title": f"History — {detail['group']['name']}",
+    })
+    return render_template("exams/group_history.html", **ctx)
+
+
+@exam_bp.route("/add", methods=["GET", "POST"])
 @exam_bp.route("/terms/add", methods=["GET", "POST"])
 @staff_exam_required
 def add_term():
     if session.get("role") != "school_admin":
-        flash("Only admin can create exam terms.", "error")
+        flash("Only admin can create exams.", "error")
         return redirect(url_for("exams.index"))
 
     school_id = session["school_id"]
     if request.method == "POST":
         data = {
             "name": request.form.get("name", ""),
-            "term_type": request.form.get("term_type", "monthly_test"),
+            "term_type": request.form.get("term_type", "midterm"),
             "academic_year": request.form.get("academic_year", ""),
-            "class_id": request.form.get("class_id") or None,
+            "weight_percent": request.form.get("weight_percent", 100),
             "start_date": request.form.get("start_date") or None,
             "end_date": request.form.get("end_date") or None,
         }
-        if not data["name"].strip():
-            flash("Exam term name is required.", "error")
-        elif not data["class_id"]:
-            flash("Select a class.", "error")
-        else:
-            term = create_exam_term(school_id, data, session.get("user_id"))
-            if term:
-                flash("Exam term created.", "success")
-                return redirect(url_for("exams.view_term", term_id=term["id"]))
-            flash("Could not create exam term.", "error")
+        group, err = create_school_exam(school_id, data, session.get("user_id"))
+        if group:
+            flash(
+                f"Exam created for all classes with subjects assigned automatically.",
+                "success",
+            )
+            return redirect(url_for("exams.view_group", group_id=group["id"]))
+        flash(err or "Could not create exam.", "error")
 
     ctx = _ctx("exams")
-    ctx.update({"page_title": "Create Exam Term", "term": None})
+    ctx.update({"page_title": "Create Exam"})
     return render_template("exams/term_form.html", **ctx)
+
+
+@exam_bp.route("/groups/<group_id>")
+@staff_exam_required
+def view_group(group_id):
+    if session.get("role") != "school_admin":
+        abort(403)
+
+    school_id = session["school_id"]
+    group = get_exam_group(group_id, school_id)
+    if not group:
+        abort(404)
+
+    terms = get_terms_for_group(group_id, school_id)
+    ctx = _ctx("exams")
+    ctx.update({
+        "group": group,
+        "terms": terms,
+        "page_title": group["name"],
+    })
+    return render_template("exams/group_detail.html", **ctx)
+
+
+@exam_bp.route("/groups/<group_id>/analytics")
+@staff_exam_required
+def group_analytics(group_id):
+    if session.get("role") != "school_admin":
+        abort(403)
+
+    school_id = session["school_id"]
+    analytics = get_exam_group_analytics(group_id, school_id)
+    if not analytics:
+        abort(404)
+
+    ctx = _ctx("exams")
+    ctx.update({
+        "analytics": analytics,
+        "group": analytics["group"],
+        "page_title": f"Analytics — {analytics['group']['name']}",
+    })
+    return render_template("exams/group_analytics.html", **ctx)
+
+
+@exam_bp.route("/groups/<group_id>/publish", methods=["POST"])
+@staff_exam_required
+def publish_group(group_id):
+    if session.get("role") != "school_admin":
+        abort(403)
+
+    school_id = session["school_id"]
+    ok, err = publish_exam_group(group_id, school_id, session.get("user_id"))
+    if ok:
+        flash("Results published. Parents have been notified and can view results on their portal.", "success")
+    else:
+        flash(err or "Publish failed.", "error")
+    return redirect(url_for("exams.view_group", group_id=group_id))
 
 
 @exam_bp.route("/terms/<term_id>")
@@ -121,6 +261,10 @@ def view_term(term_id):
     term = get_exam_term(term_id, school_id)
     if not term or not _check_term_access(term):
         abort(403 if term else 404)
+
+    is_admin = session.get("role") == "school_admin"
+    if is_admin and term.get("exam_group_id"):
+        return redirect(url_for("exams.view_group", group_id=term["exam_group_id"]))
 
     papers = get_exam_papers(term_id, school_id)
     results = get_term_results(term_id, school_id)
@@ -134,49 +278,20 @@ def view_term(term_id):
     return render_template("exams/term_detail.html", **ctx)
 
 
-@exam_bp.route("/terms/<term_id>/papers", methods=["POST"])
-@staff_exam_required
-def add_paper(term_id):
-    school_id = session["school_id"]
-    term = get_exam_term(term_id, school_id)
-    if not term or not _check_term_access(term):
-        abort(403 if term else 404)
-
-    data = {
-        "subject_id": request.form.get("subject_id"),
-        "max_marks": request.form.get("max_marks", 100),
-        "pass_marks": request.form.get("pass_marks", 33),
-        "weight_percent": request.form.get("weight_percent", 100),
-        "exam_date": request.form.get("exam_date") or None,
-    }
-    if not data["subject_id"]:
-        flash("Select a subject.", "error")
-    elif add_exam_paper(term_id, school_id, data):
-        flash("Subject added to exam.", "success")
-    else:
-        flash("Could not add subject (may already exist).", "error")
-    return redirect(url_for("exams.view_term", term_id=term_id))
-
-
-@exam_bp.route("/papers/<paper_id>/delete", methods=["POST"])
-@staff_exam_required
-def remove_paper(paper_id):
-    school_id = session["school_id"]
-    term_id = request.form.get("term_id")
-    if delete_exam_paper(paper_id, school_id):
-        flash("Subject removed.", "success")
-    else:
-        flash("Could not remove subject.", "error")
-    return redirect(url_for("exams.view_term", term_id=term_id))
-
-
 @exam_bp.route("/terms/<term_id>/marks", methods=["GET", "POST"])
 @staff_exam_required
 def enter_marks(term_id):
+    if session.get("role") == "school_admin":
+        abort(403)
+
     school_id = session["school_id"]
     term = get_exam_term(term_id, school_id)
     if not term or not _check_term_access(term):
         abort(403 if term else 404)
+
+    if term.get("submission_status") in ("submitted", "approved"):
+        flash("Marks are locked while results await approval or are already approved.", "warning")
+        return redirect(url_for("exams.view_term", term_id=term_id))
 
     class_id = term.get("class_id")
     papers, students, matrix = get_marks_matrix(term_id, school_id, class_id)
@@ -204,16 +319,69 @@ def enter_marks(term_id):
     return render_template("exams/enter_marks.html", **ctx)
 
 
-@exam_bp.route("/terms/<term_id>/calculate", methods=["POST"])
+@exam_bp.route("/terms/<term_id>/submit", methods=["POST"])
 @staff_exam_required
-def calculate(term_id):
+def submit_results(term_id):
+    if session.get("role") == "school_admin":
+        abort(403)
+
     school_id = session["school_id"]
     term = get_exam_term(term_id, school_id)
     if not term or not _check_term_access(term):
         abort(403 if term else 404)
 
-    count = calculate_term_results(term_id, school_id, term.get("class_id"))
-    flash(f"Calculated results for {count} student(s) with ranks.", "success")
+    ok, err = submit_class_results(term_id, school_id, session.get("user_id"))
+    if ok:
+        flash("Class results submitted to admin for approval.", "success")
+    else:
+        flash(err or "Submit failed.", "error")
+    return redirect(url_for("exams.view_term", term_id=term_id))
+
+
+@exam_bp.route("/terms/<term_id>/approve", methods=["POST"])
+@staff_exam_required
+def approve_results(term_id):
+    if session.get("role") != "school_admin":
+        abort(403)
+
+    school_id = session["school_id"]
+    term = get_exam_term(term_id, school_id)
+    if not term:
+        abort(404)
+
+    ok, err = approve_class_results(term_id, school_id)
+    if ok:
+        flash("Class results approved.", "success")
+    else:
+        flash(err or "Approval failed.", "error")
+
+    group_id = term.get("exam_group_id")
+    if group_id:
+        return redirect(url_for("exams.view_group", group_id=group_id))
+    return redirect(url_for("exams.view_term", term_id=term_id))
+
+
+@exam_bp.route("/terms/<term_id>/reject", methods=["POST"])
+@staff_exam_required
+def reject_results(term_id):
+    if session.get("role") != "school_admin":
+        abort(403)
+
+    school_id = session["school_id"]
+    term = get_exam_term(term_id, school_id)
+    if not term:
+        abort(404)
+
+    note = request.form.get("rejection_note", "")
+    ok, err = reject_class_results(term_id, school_id, note)
+    if ok:
+        flash("Results sent back to teacher for correction.", "success")
+    else:
+        flash(err or "Rejection failed.", "error")
+
+    group_id = term.get("exam_group_id")
+    if group_id:
+        return redirect(url_for("exams.view_group", group_id=group_id))
     return redirect(url_for("exams.view_term", term_id=term_id))
 
 
@@ -281,37 +449,6 @@ def result_pdf(term_id, student_id):
         mimetype="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
-
-
-@exam_bp.route("/terms/<term_id>/publish", methods=["POST"])
-@staff_exam_required
-def publish(term_id):
-    school_id = session["school_id"]
-    term = get_exam_term(term_id, school_id)
-    if not term or session.get("role") != "school_admin":
-        abort(403 if term else 404)
-
-    if publish_term_results(term_id, school_id):
-        flash("Results published. Students and parents can now view them.", "success")
-    else:
-        flash("Publish failed.", "error")
-    return redirect(url_for("exams.view_term", term_id=term_id))
-
-
-@exam_bp.route("/terms/<term_id>/share-parents", methods=["POST"])
-@staff_exam_required
-def share_parents(term_id):
-    school_id = session["school_id"]
-    term = get_exam_term(term_id, school_id)
-    if not term or session.get("role") != "school_admin":
-        abort(403 if term else 404)
-
-    count, err = share_results_with_parents(term_id, school_id, session.get("user_id"))
-    if err:
-        flash(err, "error")
-    else:
-        flash(f"Shared results with {count} parent notification(s).", "success")
-    return redirect(url_for("exams.view_term", term_id=term_id))
 
 
 @exam_bp.route("/student/<student_id>/history")

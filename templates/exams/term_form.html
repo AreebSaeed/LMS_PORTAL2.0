@@ -14,20 +14,21 @@
       {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
       <div class="section-card">
         <div class="section-body">
+          <p class="form-hint" style="margin-bottom:20px;">
+            Creates the exam for <strong>all classes</strong> automatically. Subjects are loaded from each class's assigned subjects.
+          </p>
           <form method="POST" action="{{ url_for('exams.add_term') }}" class="portal-form">
             <div class="form-grid-2">
-              <div class="form-row"><label class="field-label">Exam Term Name</label><input class="form-input" name="name" required placeholder="e.g. First Term Final 2026" /></div>
-              <div class="form-row"><label class="field-label">Type</label>
-                <select class="form-input" name="term_type">{% for val, label in term_types %}<option value="{{ val }}">{{ label }}</option>{% endfor %}</select>
+              <div class="form-row"><label class="field-label">Exam Name</label><input class="form-input" name="name" required placeholder="e.g. Mid Term Examination 2026" /></div>
+              <div class="form-row"><label class="field-label">Exam Type</label>
+                <select class="form-input" name="term_type" required>{% for val, label in term_types %}<option value="{{ val }}">{{ label }}</option>{% endfor %}</select>
               </div>
-              <div class="form-row"><label class="field-label">Class</label>
-                <select class="form-input" name="class_id" required><option value="">Select class</option>{% for c in classes %}<option value="{{ c.id }}">{{ c.name or c.grade }}{% if c.section %} — {{ c.section }}{% endif %}</option>{% endfor %}</select>
-              </div>
-              <div class="form-row"><label class="field-label">Academic Year</label><input class="form-input" name="academic_year" placeholder="2025-2026" /></div>
-              <div class="form-row"><label class="field-label">Start Date</label><input class="form-input" type="date" name="start_date" /></div>
-              <div class="form-row"><label class="field-label">End Date</label><input class="form-input" type="date" name="end_date" /></div>
+              <div class="form-row"><label class="field-label">Weightage (%)</label><input class="form-input" type="number" name="weight_percent" value="100" min="1" max="100" step="0.01" required /></div>
+              <div class="form-row"><label class="field-label">Academic Year</label><input class="form-input" name="academic_year" placeholder="2025-2026" required /></div>
+              <div class="form-row"><label class="field-label">Start Date</label><input class="form-input" type="date" name="start_date" required /></div>
+              <div class="form-row"><label class="field-label">End Date</label><input class="form-input" type="date" name="end_date" required /></div>
             </div>
-            <button type="submit" class="action-btn btn-primary">Create Exam Term</button>
+            <button type="submit" class="action-btn btn-primary">Create Exam for All Classes</button>
             <a href="{{ url_for('exams.index') }}" class="action-btn btn-outline">Cancel</a>
           </form>
         </div>

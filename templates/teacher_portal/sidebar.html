@@ -19,7 +19,6 @@
     <a href="{{ url_for('attendance.teacher_index') }}" class="nav-item {% if active_nav == 'attendance' %}active{% endif %}"><i class="ti ti-calendar-check"></i> Attendance</a>
     <div class="nav-section-label">Academics</div>
     <a href="{{ url_for('teacher_portal.homework') }}" class="nav-item {% if active_nav == 'homework' %}active{% endif %}"><i class="ti ti-book-2"></i> Homework</a>
-    <a href="{{ url_for('teacher_portal.marks') }}" class="nav-item {% if active_nav == 'marks' %}active{% endif %}"><i class="ti ti-pencil"></i> Enter Marks</a>
     <a href="{{ url_for('exams.index') }}" class="nav-item {% if active_nav == 'exams' %}active{% endif %}"><i class="ti ti-clipboard-check"></i> Exams & Results</a>
     <a href="{{ url_for('teacher_portal.timetable') }}" class="nav-item {% if active_nav == 'timetable' %}active{% endif %}"><i class="ti ti-clock"></i> Timetable</a>
     <a href="{{ url_for('teacher_portal.announcements') }}" class="nav-item {% if active_nav == 'announcements' %}active{% endif %}"><i class="ti ti-speakerphone"></i> Announcements</a>
