@@ -59,7 +59,7 @@ def get_linked_students(parent_id: str):
         student_ids = [l["student_id"] for l in links]
         students = (
             supabase_admin.table("students")
-            .select("id, full_name, admission_number, roll_number, class_grade, section, status")
+            .select("id, full_name, admission_number, roll_number, class_id, class_grade, section, status")
             .in_("id", student_ids)
             .execute()
             .data or []

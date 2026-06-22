@@ -32,7 +32,8 @@
 }
 
 .status-select {
-  min-width: 120px;
+  min-width: 0;
+  max-width: 100%;
   padding: 6px 10px !important;
 }
 
@@ -41,6 +42,13 @@
   gap: 6px;
   align-items: center;
   flex-wrap: wrap;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .class-picker-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
 }
 
 .badge-leave { background: #DBEAFE; color: #1E40AF; }

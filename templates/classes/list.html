@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — {{ school.name if school else 'School Portal' }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/classes.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">{{ page_title }}</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Total Classes</div><div class="stat-value">{{ total_classes }}</div></div>
+        <div class="stat-card"><div class="stat-label">Total Enrollments</div><div class="stat-value">{{ total_students }}</div></div>
+        <div class="stat-card"><div class="stat-label">Teacher Assignments</div><div class="stat-value">{{ total_teacher_links }}</div></div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Classes</div>
+          <a href="{{ url_for('classes.add_class') }}" class="action-btn btn-primary">Add Class</a>
+        </div>
+        <div class="section-body">
+          <form method="GET" class="search-bar">
+            <input class="form-input" type="text" name="q" value="{{ query }}" placeholder="Search by class name, grade, section..." />
+            <button type="submit" class="action-btn btn-outline">Search</button>
+            {% if query %}
+              <a href="{{ url_for('classes.index') }}" class="action-btn btn-outline">Clear</a>
+            {% endif %}
+          </form>
+
+          {% if classes %}
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Class</th>
+                    <th>Grade</th>
+                    <th>Section</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for c in classes %}
+                  <tr>
+                    <td>{{ c.label }}</td>
+                    <td>{{ c.grade or '—' }}</td>
+                    <td>{{ c.section or '—' }}</td>
+                    <td class="actions-cell">
+                      <a href="{{ url_for('classes.view_class', class_id=c.id) }}" class="action-btn btn-outline btn-sm">Open</a>
+                      <a href="{{ url_for('classes.edit_class', class_id=c.id) }}" class="action-btn btn-primary btn-sm">Edit</a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-state">No classes found.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

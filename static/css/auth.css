@@ -7,6 +7,17 @@ body.auth-page {
   padding: 24px;
 }
 
+@media (max-width: 480px) {
+  body.auth-page { padding: 16px; }
+  .login-card { padding: 28px 20px; }
+  .login-brand-text { font-size: 20px; }
+}
+
+@media (max-width: 360px) {
+  body.auth-page { padding: 12px; }
+  .login-card { padding: 24px 16px; }
+}
+
 .login-card {
   background: var(--surface);
   border: 1px solid var(--border);

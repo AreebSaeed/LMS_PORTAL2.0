@@ -240,6 +240,41 @@ def update_student_status(student_id: str, school_id: str, status: str):
     return result.data[0] if result.data else None
 
 
+def update_student_class_assignment(student_id: str, school_id: str, class_id: str = None):
+    student = get_student_by_id(student_id, school_id)
+    if not student:
+        return None
+
+    cid, grade, section = _class_fields(class_id, school_id) if class_id else (None, None, None)
+    payload = {
+        "class_id": cid,
+        "class_grade": grade,
+        "section": section,
+        "updated_at": _now_iso(),
+    }
+    result = (
+        supabase_admin.table("students")
+        .update(payload)
+        .eq("id", student_id)
+        .eq("school_id", school_id)
+        .execute()
+    )
+    updated = result.data[0] if result.data else None
+
+    if updated:
+        add_academic_history(
+            student_id,
+            school_id,
+            {
+                "academic_year": updated.get("batch_session") or datetime.now().strftime("%Y"),
+                "class_grade": updated.get("class_grade"),
+                "section": updated.get("section"),
+                "notes": "Class assignment updated from student settings",
+            },
+        )
+    return updated
+
+
 def delete_student(student_id: str, school_id: str):
     result = (
         supabase_admin.table("students")

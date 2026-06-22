@@ -1,0 +1,29 @@
+.checkbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--gray-100);
+}
+
+.checkbox-item:hover {
+  background: var(--primary-light);
+}
+
+.checkbox-item input {
+  margin-top: 3px;
+  accent-color: var(--primary);
+}

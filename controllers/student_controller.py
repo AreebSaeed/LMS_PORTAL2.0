@@ -9,6 +9,7 @@ from models.student_model import (
     search_students, get_student_by_id, get_student_documents,
     get_academic_history, get_classes_for_school, get_distinct_class_sections,
     create_student, update_student, update_student_status, delete_student,
+    update_student_class_assignment,
     upload_file, update_student_photo, add_document,
     enable_student_login, reset_student_password,
 )
@@ -142,6 +143,7 @@ def view_student(student_id):
         "student": student,
         "documents": get_student_documents(student_id),
         "academic_history": get_academic_history(student_id),
+        "classes": get_classes_for_school(school_id),
         "page_title": student["full_name"],
     })
     return render_template("students/detail.html", **ctx)
@@ -211,6 +213,19 @@ def set_status(student_id):
             flash(f"Student marked as {status}.", "success")
         else:
             flash("Could not update status.", "error")
+    return redirect(url_for("students.view_student", student_id=student_id))
+
+
+@student_bp.route("/<student_id>/assign-class", methods=["POST"])
+@school_admin_required
+def assign_class(student_id):
+    school_id = session["school_id"]
+    class_id = request.form.get("class_id") or None
+    updated = update_student_class_assignment(student_id, school_id, class_id)
+    if updated:
+        flash("Student class assignment updated.", "success")
+    else:
+        flash("Could not update class assignment.", "error")
     return redirect(url_for("students.view_student", student_id=student_id))
 
 

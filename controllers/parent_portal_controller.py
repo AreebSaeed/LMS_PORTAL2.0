@@ -29,6 +29,7 @@ from models.homework_model import (
     get_homework_submission,
     mark_homework_seen,
 )
+from models.class_model import get_class_by_id, get_class_teachers
 
 parent_portal_bp = Blueprint("parent_portal", __name__)
 
@@ -101,9 +102,13 @@ def child_profile(student_id):
     student = get_student_by_id(student_id, school_id)
     if not student:
         abort(404)
+    class_info = get_class_by_id(student.get("class_id"), school_id) if student.get("class_id") else None
+    class_teachers = get_class_teachers(student.get("class_id"), school_id) if student.get("class_id") else []
     ctx = _ctx("children", parent)
     ctx.update({
         "student": student,
+        "class_info": class_info,
+        "class_teachers": class_teachers,
         "attendance_summary": get_attendance_summary(student_id, school_id),
         "page_title": student["full_name"],
     })

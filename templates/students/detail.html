@@ -139,6 +139,26 @@
       </div>
 
       <div class="section-card">
+        <div class="section-header"><div class="section-title">Class Assignment Settings</div></div>
+        <div class="section-body">
+          <form method="POST" action="{{ url_for('students.assign_class', student_id=student.id) }}" class="inline-form">
+            <div class="form-group">
+              <label class="form-label" for="class_id">Assign Class</label>
+              <select class="form-input" id="class_id" name="class_id">
+                <option value="">Unassign class</option>
+                {% for c in classes %}
+                <option value="{{ c.id }}" {% if student.class_id == c.id %}selected{% endif %}>
+                  {{ c.name or c.grade }}{% if c.section %} — {{ c.section }}{% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="submit" class="action-btn btn-primary">Update Class</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="section-card">
         <div class="section-header"><div class="section-title">Student Actions</div></div>
         <div class="section-body actions-panel">
           <form method="POST" action="{{ url_for('students.set_status', student_id=student.id) }}" class="inline-form">

@@ -19,7 +19,7 @@
             <a href="{{ url_for('parent_portal.child_profile', student_id=c.id) }}" class="child-card">
               <div class="child-avatar">{{ c.full_name[0]|upper }}</div>
               <div class="child-name">{{ c.full_name }}</div>
-              <div class="child-meta">{{ c.class_grade or '—' }}{% if c.section %}-{{ c.section }}{% endif %}</div>
+              <div class="child-meta">Class: {{ c.class_grade or '—' }}{% if c.section %} - {{ c.section }}{% endif %}</div>
               <div class="child-meta">Adm: {{ c.admission_number }}</div>
             </a>
             {% endfor %}

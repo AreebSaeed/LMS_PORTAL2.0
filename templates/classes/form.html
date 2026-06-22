@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — {{ school.name if school else 'School Portal' }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/classes.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">{{ page_title }}</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="POST" action="{{ form_action }}">
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Class Information</div></div>
+          <div class="section-body form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="name">Class Name *</label>
+              <input class="form-input" id="name" name="name" required value="{{ classroom.name if classroom else '' }}" placeholder="e.g. Grade 8 Blue" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="grade">Grade</label>
+              <input class="form-input" id="grade" name="grade" value="{{ classroom.grade if classroom else '' }}" placeholder="e.g. Grade 8" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="section">Section</label>
+              <input class="form-input" id="section" name="section" value="{{ classroom.section if classroom else '' }}" placeholder="e.g. A" />
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Assign Teachers (Multiple Allowed)</div></div>
+          <div class="section-body">
+            {% if teachers %}
+              <div class="checkbox-list">
+                {% for t in teachers %}
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="teacher_ids" value="{{ t.id }}" {% if t.id in selected_teacher_ids %}checked{% endif %} />
+                    <span>{{ t.full_name }}{% if t.designation %} — {{ t.designation }}{% endif %}{% if t.employee_id %} ({{ t.employee_id }}){% endif %}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="empty-state">No teachers available yet.</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="action-btn btn-primary">Save Class</button>
+          <a href="{{ url_for('classes.index') }}" class="action-btn btn-outline">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
+{% endblock %}

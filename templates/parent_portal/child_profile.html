@@ -15,7 +15,7 @@
         <div class="profile-photo placeholder">{{ student.full_name[0]|upper }}</div>
         <div class="profile-info">
           <h1 class="profile-name">{{ student.full_name }}</h1>
-          <p class="profile-meta">{{ student.class_grade or '—' }}{% if student.section %}-{{ student.section }}{% endif %} · Roll: {{ student.roll_number or '—' }} · Adm: {{ student.admission_number }}</p>
+          <p class="profile-meta">Class: {{ student.class_grade or '—' }}{% if student.section %} - {{ student.section }}{% endif %} · Roll: {{ student.roll_number or '—' }} · Adm: {{ student.admission_number }}</p>
           <span class="badge badge-active">{{ student.status|capitalize }}</span>
         </div>
         <div class="profile-actions">
@@ -29,6 +29,27 @@
         <div class="stat-card green"><div class="stat-label">Attendance (Month)</div><div class="stat-value">{{ attendance_summary.attendance_pct }}%</div></div>
         <div class="stat-card"><div class="stat-label">Present</div><div class="stat-value">{{ attendance_summary.present }}</div></div>
         <div class="stat-card red"><div class="stat-label">Absent</div><div class="stat-value">{{ attendance_summary.absent }}</div></div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Current Class Information</div></div>
+        <div class="section-body">
+          <div class="detail-grid">
+            <div class="detail-card"><div class="detail-label">Class Name</div><div class="detail-value">{{ class_info.label if class_info else (student.class_grade or '—') }}</div></div>
+            <div class="detail-card"><div class="detail-label">Grade</div><div class="detail-value">{{ class_info.grade if class_info else (student.class_grade or '—') }}</div></div>
+            <div class="detail-card"><div class="detail-label">Section</div><div class="detail-value">{{ class_info.section if class_info else (student.section or '—') }}</div></div>
+            <div class="detail-card">
+              <div class="detail-label">Assigned Teacher(s)</div>
+              <div class="detail-value">
+                {% if class_teachers %}
+                  {{ class_teachers | map(attribute='full_name') | join(', ') }}
+                {% else %}
+                  —
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="detail-grid">

@@ -24,6 +24,9 @@
     <a href="{{ url_for('parents.list_parents') }}" class="nav-item {% if active_nav == 'parents' %}active{% endif %}">
       <i class="ti ti-users-group"></i> Parents
     </a>
+    <a href="{{ url_for('classes.index') }}" class="nav-item {% if active_nav == 'classes' %}active{% endif %}">
+      <i class="ti ti-building-community"></i> Classes
+    </a>
     <div class="nav-section-label">Finance & Academic</div>
     <a href="{{ url_for('fees.index') }}" class="nav-item {% if active_nav == 'fees' %}active{% endif %}">
       <i class="ti ti-cash"></i> Fee Management
