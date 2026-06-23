@@ -17,18 +17,6 @@ PASTEL_COLORS = [
     "#A5F3FC", "#FECACA", "#D9F99D", "#E9D5FF", "#FED7AA",
 ]
 
-COLOR_OPTIONS = [
-    {"id": "blue", "hex": "#BFDBFE", "label": "Sky"},
-    {"id": "green", "hex": "#BBF7D0", "label": "Mint"},
-    {"id": "yellow", "hex": "#FDE68A", "label": "Sun"},
-    {"id": "pink", "hex": "#FBCFE8", "label": "Rose"},
-    {"id": "purple", "hex": "#DDD6FE", "label": "Lilac"},
-    {"id": "cyan", "hex": "#A5F3FC", "label": "Aqua"},
-    {"id": "coral", "hex": "#FECACA", "label": "Coral"},
-    {"id": "lime", "hex": "#D9F99D", "label": "Lime"},
-]
-
-
 def _class_label(cls: dict) -> str:
     if not cls:
         return "—"
@@ -45,11 +33,7 @@ def _time_str(val) -> str:
     return s[:5] if len(s) >= 5 else s
 
 
-def color_for_subject(subject_name: str, color_id: str = None) -> str:
-    if color_id:
-        for c in COLOR_OPTIONS:
-            if c["id"] == color_id:
-                return c["hex"]
+def color_for_subject(subject_name: str) -> str:
     key = (subject_name or "default").strip().lower()
     idx = sum(ord(c) for c in key) % len(PASTEL_COLORS)
     return PASTEL_COLORS[idx]
@@ -73,8 +57,7 @@ def normalize_slot(row: dict, teacher_name: str = None) -> dict:
         "day_of_week": (row.get("day_of_week") or "monday").lower(),
         "start_time": _time_str(row.get("start_time")),
         "end_time": _time_str(row.get("end_time")),
-        "color": color_for_subject(subject_name, row.get("color")),
-        "color_id": row.get("color"),
+        "color": color_for_subject(subject_name),
     }
 
 
@@ -118,23 +101,6 @@ def build_time_ranges(slots: list = None) -> list:
 
 HOURLY_START_OPTIONS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00"]
 HOURLY_END_OPTIONS = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00"]
-
-
-def _format_range(start: str, end: str) -> str:
-    return f"{_format_time_12(start)} – {_format_time_12(end)}"
-
-
-def _format_time_12(t: str) -> str:
-    try:
-        parts = t.split(":")
-        h, m = int(parts[0]), int(parts[1]) if len(parts) > 1 else 0
-        suffix = "AM" if h < 12 else "PM"
-        h12 = h % 12 or 12
-        if m == 0:
-            return f"{h12} {suffix}"
-        return f"{h12}:{m:02d} {suffix}"
-    except (ValueError, IndexError):
-        return t
 
 
 def class_filter_options(slots: list) -> list:
@@ -304,14 +270,61 @@ def fetch_school_timetable(school_id: str, class_id: str = None) -> list:
     return _sort_slots(out)
 
 
+def _find_overlapping_slots(
+    school_id: str,
+    class_id: str,
+    day_of_week: str,
+    start_time: str,
+    end_time: str,
+    exclude_slot_id: str = None,
+):
+    """Return slots that overlap the given interval in the same class/day."""
+    try:
+        q = (
+            supabase_admin.table("teacher_timetable")
+            .select("*")
+            .eq("school_id", school_id)
+            .eq("class_id", class_id)
+            .eq("day_of_week", day_of_week)
+            .lt("start_time", end_time)
+            .gt("end_time", start_time)
+        )
+        if exclude_slot_id:
+            q = q.neq("id", exclude_slot_id)
+        return q.execute().data or []
+    except Exception:
+        return []
+
+
 def admin_add_slot(school_id: str, data: dict):
     teacher_id = data.get("teacher_id")
-    if not teacher_id or not data.get("class_id"):
-        return None, "Teacher and class are required."
+    class_id = data.get("class_id")
+    day_of_week = (data.get("day_of_week") or "").lower()
+    start_time = data.get("start_time")
+    end_time = data.get("end_time")
+    allow_replace = bool(data.get("allow_replace"))
+    if not teacher_id or not class_id:
+        return None, "Teacher and class are required.", None
+
+    conflicts = _find_overlapping_slots(
+        school_id, class_id, day_of_week, start_time, end_time
+    )
+    if conflicts and not allow_replace:
+        return None, "conflict", conflicts[0]
+    if conflicts and allow_replace:
+        for row in conflicts:
+            (
+                supabase_admin.table("teacher_timetable")
+                .delete()
+                .eq("id", row["id"])
+                .eq("school_id", school_id)
+                .execute()
+            )
+
     slot = add_timetable_slot(teacher_id, school_id, data)
     if slot:
-        return slot, None
-    return None, "Could not add slot."
+        return slot, None, None
+    return None, "Could not add slot.", None
 
 
 def admin_update_slot(slot_id: str, school_id: str, data: dict):
@@ -324,6 +337,26 @@ def admin_update_slot(slot_id: str, school_id: str, data: dict):
         "end_time": data["end_time"],
         "room": (data.get("room") or "").strip() or None,
     }
+    allow_replace = bool(data.get("allow_replace"))
+    conflicts = _find_overlapping_slots(
+        school_id,
+        payload["class_id"],
+        payload["day_of_week"],
+        payload["start_time"],
+        payload["end_time"],
+        exclude_slot_id=slot_id,
+    )
+    if conflicts and not allow_replace:
+        return None, "conflict", conflicts[0]
+    if conflicts and allow_replace:
+        for row in conflicts:
+            (
+                supabase_admin.table("teacher_timetable")
+                .delete()
+                .eq("id", row["id"])
+                .eq("school_id", school_id)
+                .execute()
+            )
     try:
         result = (
             supabase_admin.table("teacher_timetable")
@@ -333,10 +366,10 @@ def admin_update_slot(slot_id: str, school_id: str, data: dict):
             .execute()
         )
         if result.data:
-            return result.data[0], None
-        return None, "Slot not found."
+            return result.data[0], None, None
+        return None, "Slot not found.", None
     except Exception:
-        return None, "Could not update slot."
+        return None, "Could not update slot.", None
 
 
 def admin_delete_slot(slot_id: str, school_id: str):

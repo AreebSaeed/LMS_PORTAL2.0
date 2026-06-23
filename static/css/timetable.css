@@ -391,19 +391,6 @@
   font-size: 14px;
 }
 .tt-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.tt-color-picker {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.tt-color-swatch {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  cursor: pointer;
-}
-.tt-color-swatch.selected { border-color: var(--tt-text); }
 .tt-modal-actions {
   display: flex;
   gap: 10px;

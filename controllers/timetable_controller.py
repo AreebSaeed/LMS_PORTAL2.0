@@ -7,14 +7,12 @@ from models.school_model import get_school_by_id
 from models.timetable_model import (
     build_time_ranges,
     fetch_school_timetable,
-    fetch_class_timetable,
     admin_add_slot,
     admin_update_slot,
     admin_delete_slot,
     teachers_for_select,
     classes_for_select,
     subjects_for_select,
-    COLOR_OPTIONS,
     HOURLY_START_OPTIONS,
     HOURLY_END_OPTIONS,
     _class_label,
@@ -57,7 +55,6 @@ def index():
         "tt_class_options": class_opts,
         "tt_subjects": subjects_for_select(school_id),
         "tt_teachers": teachers_for_select(school_id),
-        "tt_colors": COLOR_OPTIONS,
         "tt_can_edit": True,
         "tt_title": "Class Timetable",
         "tt_admin_mode": True,
@@ -81,10 +78,17 @@ def add_slot():
     if not all(data.get(k) for k in required):
         return jsonify({"success": False, "error": "All required fields must be filled."}), 400
 
-    slot, err = admin_add_slot(school_id, data)
+    slot, err, conflict = admin_add_slot(school_id, data)
     if slot:
         flash("Timetable slot added. Students in this class will see it automatically.", "success")
         return jsonify({"success": True, "slot": slot})
+    if err == "conflict":
+        return jsonify({
+            "success": False,
+            "error": "Time slot already has an event for this class. Replace it?",
+            "conflict": True,
+            "conflict_slot": conflict,
+        }), 409
     return jsonify({"success": False, "error": err or "Could not add slot."}), 500
 
 
@@ -93,10 +97,17 @@ def add_slot():
 def update_slot(slot_id):
     school_id = session["school_id"]
     data = request.get_json(silent=True) or request.form
-    slot, err = admin_update_slot(slot_id, school_id, data)
+    slot, err, conflict = admin_update_slot(slot_id, school_id, data)
     if slot:
         flash("Timetable slot updated.", "success")
         return jsonify({"success": True, "slot": slot})
+    if err == "conflict":
+        return jsonify({
+            "success": False,
+            "error": "Time slot already has an event for this class. Replace it?",
+            "conflict": True,
+            "conflict_slot": conflict,
+        }), 409
     return jsonify({"success": False, "error": err or "Could not update slot."}), 500
 
 

@@ -36,7 +36,6 @@ from models.timetable_model import (
     normalize_teacher_slots,
     build_time_ranges,
     class_filter_options,
-    COLOR_OPTIONS,
 )
 
 teacher_portal_bp = Blueprint("teacher_portal", __name__)
@@ -144,7 +143,6 @@ def timetable():
         "tt_slots": slots,
         "tt_time_ranges": build_time_ranges(),
         "tt_class_options": class_opts,
-        "tt_colors": COLOR_OPTIONS,
         "tt_can_edit": False,
         "tt_title": "Class Timetable",
     })

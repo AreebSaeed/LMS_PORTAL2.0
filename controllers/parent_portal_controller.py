@@ -24,7 +24,6 @@ from models.parent_portal_model import (
 from models.timetable_model import (
     fetch_class_timetable,
     build_time_ranges,
-    COLOR_OPTIONS,
     _class_label,
 )
 from models.class_model import get_class_by_id, get_class_teachers
@@ -309,7 +308,6 @@ def timetable():
         "tt_class_options": class_opts,
         "tt_can_edit": False,
         "tt_title": (student["full_name"] + " — Timetable") if student else "Class Timetable",
-        "tt_colors": COLOR_OPTIONS,
     })
     return render_template("parent_portal/timetable.html", **ctx)
 

@@ -6,7 +6,6 @@
      data-classes='{{ tt_class_options | default([]) | tojson }}'
      data-subjects='{{ tt_subjects | default([]) | tojson }}'
      data-teachers='{{ tt_teachers | default([]) | tojson }}'
-     data-colors='{{ tt_colors | default([]) | tojson }}'
      data-can-edit="{{ 'true' if tt_can_edit else 'false' }}"
      data-admin-mode="{{ 'true' if tt_admin_mode else 'false' }}"
      data-selected-class="{{ selected_class_id | default('') }}"
@@ -15,9 +14,6 @@
      data-api-delete="{{ tt_api_delete | default('') }}">
 
   <header class="tt-header">
-    <button type="button" class="tt-header-btn tt-menu-btn" aria-label="Open menu">
-      <i class="ti ti-menu-2"></i>
-    </button>
     <h1 class="tt-header-title">{{ tt_title | default('Class Timetable') }}</h1>
     <div class="tt-header-actions">
       <button type="button" class="tt-header-btn tt-search-btn" aria-label="Search timetable">
@@ -35,28 +31,11 @@
     <input type="search" class="tt-search-input" placeholder="Search subject, teacher, or room…" aria-label="Search timetable" />
   </div>
 
-  <div class="tt-filters">
-    {% if not tt_admin_mode %}
-    <select class="tt-class-select tt-class-filter" aria-label="Filter by class">
-      <option value="">All Classes</option>
-      {% for c in tt_class_options | default([]) %}
-      <option value="{{ c.id }}">{{ c.label }}</option>
-      {% endfor %}
-    </select>
-    {% endif %}
-    <div class="tt-legend"></div>
-    <button type="button" class="tt-toggle-details active" aria-label="Toggle details" title="Show/hide details">
-      <i class="ti ti-eye"></i>
-    </button>
-  </div>
-
   <div class="tt-grid-wrap">
-    <p class="tt-scroll-hint" aria-hidden="true"><i class="ti ti-arrows-horizontal"></i> Swipe sideways for all time slots</p>
     <div class="tt-mobile-day-tabs" role="tablist" aria-label="Select day"></div>
     <div class="tt-schedule" role="grid" aria-label="Weekly timetable">
       <div class="tt-time-header" role="row"></div>
       <div class="tt-body"></div>
-      <div class="tt-now-line" aria-hidden="true"></div>
     </div>
   </div>
 
@@ -123,10 +102,6 @@
               {% endfor %}
             </select>
           </div>
-        </div>
-        <div class="tt-form-row">
-          <label>Color</label>
-          <div class="tt-color-picker"></div>
         </div>
         <div class="tt-modal-actions">
           <button type="button" class="tt-btn tt-btn-outline tt-modal-close">Cancel</button>
