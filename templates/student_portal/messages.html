@@ -11,8 +11,27 @@
     <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
     <div class="page-body">
       {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
-      <div class="section-card"><div class="section-header"><div class="section-title">Contact School</div></div><div class="section-body">
-        <form method="POST" class="portal-form">
+      <div class="section-card"><div class="section-header"><div class="section-title">Send a Message</div></div><div class="section-body">
+        <form method="POST" class="portal-form" id="student-message-form">
+          <div class="form-row">
+            <label class="field-label">Send to</label>
+            <select class="form-input" name="recipient_type" id="recipient_type" required>
+              <option value="admin">School Admin</option>
+              <option value="teacher" {% if not teachers %}disabled{% endif %}>Teacher</option>
+            </select>
+            {% if not teachers %}
+            <p class="field-hint">No class teachers assigned yet — you can message the school admin.</p>
+            {% endif %}
+          </div>
+          <div class="form-row" id="teacher-select-row" style="display:none;">
+            <label class="field-label">Teacher</label>
+            <select class="form-input" name="teacher_id" id="teacher_id">
+              <option value="">Select teacher…</option>
+              {% for t in teachers %}
+              <option value="{{ t.id }}">{{ t.full_name }}{% if t.designation %} — {{ t.designation }}{% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
           <div class="form-row"><label class="field-label">Subject</label><input class="form-input" type="text" name="subject" required /></div>
           <div class="form-row"><label class="field-label">Message</label><textarea class="form-input" name="message" rows="5" required placeholder="Ask a question or report an issue…"></textarea></div>
           <button type="submit" class="action-btn btn-primary">Send Message</button>
@@ -20,7 +39,10 @@
       </div></div>
       <div class="section-card"><div class="section-header"><div class="section-title">Previous Messages</div></div><div class="section-body">
         {% for m in messages_list %}
-        <div class="message-thread"><div><strong>{{ m.subject }}</strong> <span class="badge badge-{{ m.status }}">{{ m.status|replace('_',' ') }}</span></div><p>{{ m.message }}</p>
+        <div class="message-thread">
+          <div><strong>{{ m.subject }}</strong> <span class="badge badge-{{ m.status }}">{{ m.status|replace('_',' ') }}</span></div>
+          <div class="message-meta">To: {{ recipient_label(m) }}</div>
+          <p>{{ m.message }}</p>
           {% if m.admin_reply %}<div class="admin-reply"><strong>Reply:</strong> {{ m.admin_reply }}</div>{% endif %}
         </div>
         {% else %}<div class="empty-state">No messages sent yet.</div>{% endfor %}
@@ -28,4 +50,18 @@
     </div>
   </main>
 </div>
+<script>
+(function () {
+  var typeEl = document.getElementById('recipient_type');
+  var teacherRow = document.getElementById('teacher-select-row');
+  var teacherEl = document.getElementById('teacher_id');
+  function sync() {
+    var isTeacher = typeEl && typeEl.value === 'teacher';
+    if (teacherRow) teacherRow.style.display = isTeacher ? '' : 'none';
+    if (teacherEl) teacherEl.required = isTeacher;
+  }
+  if (typeEl) typeEl.addEventListener('change', sync);
+  sync();
+})();
+</script>
 {% endblock %}

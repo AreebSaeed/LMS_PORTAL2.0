@@ -14,7 +14,9 @@ from controllers.fee_controller import fee_bp
 from controllers.announcement_controller import announcement_bp
 from controllers.class_controller import class_bp
 from controllers.timetable_controller import timetable_bp
+from controllers.student_message_controller import student_message_bp
 from models.announcement_model import announcements_list_url_for_role
+from models.student_message_model import count_unread_student_message_notifications
 
 
 def create_app():
@@ -34,6 +36,18 @@ def create_app():
             }
         return {"show_announcement_bell": False, "announcement_bell_list_url": ""}
 
+    @app.context_processor
+    def inject_staff_message_badge():
+        if session.get("user_id") and session.get("school_id"):
+            role = session.get("role", "")
+            if role in ("school_admin", "teacher"):
+                return {
+                    "unread_student_messages": count_unread_student_message_notifications(
+                        session["user_id"], session["school_id"]
+                    ),
+                }
+        return {"unread_student_messages": 0}
+
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
     app.register_blueprint(student_bp, url_prefix="/students")
@@ -48,6 +62,7 @@ def create_app():
     app.register_blueprint(announcement_bp, url_prefix="/announcements")
     app.register_blueprint(class_bp, url_prefix="/classes")
     app.register_blueprint(timetable_bp, url_prefix="/timetable")
+    app.register_blueprint(student_message_bp, url_prefix="/messages")
 
     @app.route("/")
     def index():

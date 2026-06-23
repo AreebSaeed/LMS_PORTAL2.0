@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parent_portal.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "teacher_portal/sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash-{{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      {% if notifications %}
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Recent Notifications</div></div>
+        <div class="section-body">
+          {% for n in notifications if not n.is_read %}
+          <div class="message-thread">
+            <strong>{{ n.subject }}</strong>
+            <p>{{ n.message }}</p>
+            <div class="message-date">{{ n.created_at[:16] if n.created_at else '' }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Messages from Students</div></div>
+        <div class="section-body">
+          {% for m in messages_list %}
+          <div class="message-thread" id="msg-{{ m.id }}">
+            <div class="message-header">
+              <strong>{{ m.subject }}</strong>
+              <span class="badge badge-{{ m.status }}">{{ m.status|replace('_', ' ') }}</span>
+            </div>
+            <div class="message-meta">
+              From: <strong>{{ m.students.full_name if m.students else 'Student' }}</strong>
+              {% if m.students and m.students.admission_number %}
+              · {{ m.students.admission_number }}
+              {% endif %}
+              · {{ m.created_at[:16] if m.created_at else '' }}
+            </div>
+            <p>{{ m.message }}</p>
+            {% if m.admin_reply %}
+            <div class="admin-reply">
+              <strong>Your reply:</strong> {{ m.admin_reply }}
+              <div class="message-date">{{ m.replied_at[:16] if m.replied_at else '' }}</div>
+            </div>
+            {% elif m.status != 'closed' %}
+            <form method="POST" class="portal-form reply-form">
+              <input type="hidden" name="message_id" value="{{ m.id }}" />
+              <div class="form-row">
+                <label class="field-label">Reply to student</label>
+                <textarea class="form-input" name="reply" rows="3" required placeholder="Type your response…"></textarea>
+              </div>
+              <button type="submit" class="action-btn btn-primary">Send Reply</button>
+            </form>
+            {% endif %}
+          </div>
+          {% else %}
+          <div class="empty-state">No student messages yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

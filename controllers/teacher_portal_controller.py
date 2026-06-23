@@ -282,3 +282,43 @@ def announcements():
         "page_title": "Announcements",
     })
     return render_template("teacher_portal/announcements.html", **ctx)
+
+
+@teacher_portal_bp.route("/messages", methods=["GET", "POST"])
+@teacher_required
+def messages():
+    from models.student_message_model import (
+        get_messages_for_teacher,
+        get_message_by_id,
+        reply_to_message,
+        mark_student_message_notifications_read,
+        get_staff_message_notifications,
+    )
+
+    teacher = _load_teacher()
+    school_id = session["school_id"]
+    user_id = session["user_id"]
+
+    if request.method == "POST":
+        message_id = request.form.get("message_id", "").strip()
+        reply_text = request.form.get("reply", "").strip()
+        msg = get_message_by_id(message_id, school_id) if message_id else None
+        if not msg:
+            flash("Message not found.", "error")
+        elif msg.get("teacher_id") != teacher["id"]:
+            flash("You can only reply to messages sent to you.", "error")
+        elif reply_to_message(message_id, school_id, reply_text, user_id):
+            flash("Reply sent to student.", "success")
+            return redirect(url_for("teacher_portal.messages"))
+        else:
+            flash("Could not send reply.", "error")
+
+    mark_student_message_notifications_read(user_id, school_id)
+
+    ctx = _ctx("messages", teacher)
+    ctx.update({
+        "messages_list": get_messages_for_teacher(teacher["id"], school_id),
+        "notifications": get_staff_message_notifications(user_id, school_id),
+        "page_title": "Student Messages",
+    })
+    return render_template("teacher_portal/messages.html", **ctx)

@@ -57,6 +57,7 @@
 .announcement-body, .notification-message { font-size: 14px; color: var(--gray-600); margin: 4px 0; word-break: break-word; }
 .announcement-date, .notification-date { font-size: 12px; color: var(--gray-400); }
 .message-thread { padding: 16px 0; border-bottom: 1px solid var(--gray-200); }
+.message-meta { font-size: 13px; color: var(--text-light); margin: 4px 0 8px; }
 .admin-reply {
   margin-top: 12px;
   padding: 12px;

@@ -22,6 +22,7 @@
     <a href="{{ url_for('exams.index') }}" class="nav-item {% if active_nav == 'exams' %}active{% endif %}"><i class="ti ti-clipboard-check"></i> Exams & Results</a>
     <a href="{{ url_for('teacher_portal.timetable') }}" class="nav-item {% if active_nav == 'timetable' %}active{% endif %}"><i class="ti ti-clock"></i> Timetable</a>
     <a href="{{ url_for('teacher_portal.announcements') }}" class="nav-item {% if active_nav == 'announcements' %}active{% endif %}"><i class="ti ti-speakerphone"></i> Announcements</a>
+    <a href="{{ url_for('teacher_portal.messages') }}" class="nav-item {% if active_nav == 'messages' %}active{% endif %}"><i class="ti ti-message-2"></i> Student Messages{% if unread_student_messages %}<span class="nav-badge">{{ unread_student_messages }}</span>{% endif %}</a>
   </nav>
   <div class="sidebar-footer">
     <div class="user-info">

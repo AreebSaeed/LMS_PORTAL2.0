@@ -43,6 +43,10 @@
     <a href="{{ url_for('announcements.index') }}" class="nav-item {% if active_nav == 'announcements' %}active{% endif %}">
       <i class="ti ti-speakerphone"></i> Announcements
     </a>
+    <a href="{{ url_for('student_messages.admin_inbox') }}" class="nav-item {% if active_nav == 'student_messages' %}active{% endif %}">
+      <i class="ti ti-message-2"></i> Student Messages
+      {% if unread_student_messages %}<span class="nav-badge">{{ unread_student_messages }}</span>{% endif %}
+    </a>
   </nav>
   <div class="sidebar-footer">
     <div class="user-info">

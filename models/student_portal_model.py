@@ -342,34 +342,3 @@ def get_notifications(student_id: str, limit=20):
         )
     except Exception:
         return []
-
-
-def get_student_messages(student_id: str, school_id: str, limit=30):
-    try:
-        return (
-            supabase_admin.table("student_messages")
-            .select("*")
-            .eq("student_id", student_id)
-            .eq("school_id", school_id)
-            .order("created_at", desc=True)
-            .limit(limit)
-            .execute()
-            .data or []
-        )
-    except Exception:
-        return []
-
-
-def send_student_message(student_id: str, school_id: str, subject: str, message: str):
-    payload = {
-        "student_id": student_id,
-        "school_id": school_id,
-        "subject": subject.strip(),
-        "message": message.strip(),
-        "status": "open",
-    }
-    try:
-        result = supabase_admin.table("student_messages").insert(payload).execute()
-        return result.data[0] if result.data else None
-    except Exception:
-        return None

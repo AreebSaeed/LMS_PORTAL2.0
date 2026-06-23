@@ -21,8 +21,14 @@ from models.student_portal_model import (
     get_fee_summary,
     get_study_materials,
     get_notifications,
+)
+from models.student_message_model import (
+    RECIPIENT_ADMIN,
+    RECIPIENT_TEACHER,
     get_student_messages,
     send_student_message,
+    get_teachers_for_student,
+    recipient_label,
 )
 from models.timetable_model import (
     fetch_class_timetable,
@@ -325,21 +331,44 @@ def notifications():
 def messages():
     student = _load_student()
     school_id = session["school_id"]
+    teachers = get_teachers_for_student(student, school_id)
 
     if request.method == "POST":
         subject = request.form.get("subject", "").strip()
         message = request.form.get("message", "").strip()
+        recipient_type = request.form.get("recipient_type", RECIPIENT_ADMIN).strip()
+        teacher_id = request.form.get("teacher_id") or None
+
         if not subject or not message:
             flash("Subject and message are required.", "error")
-        elif send_student_message(student["id"], school_id, subject, message):
-            flash("Message sent to school.", "success")
-            return redirect(url_for("student_portal.messages"))
+        elif recipient_type == RECIPIENT_TEACHER:
+            valid_ids = {t["id"] for t in teachers}
+            if not teacher_id or teacher_id not in valid_ids:
+                flash("Please select a valid teacher.", "error")
+            elif send_student_message(
+                student["id"], school_id, subject, message,
+                RECIPIENT_TEACHER, teacher_id,
+            ):
+                flash("Message sent to your teacher.", "success")
+                return redirect(url_for("student_portal.messages"))
+            else:
+                flash("Could not send message. Ask your school to run the latest database update.", "error")
+        elif recipient_type == RECIPIENT_ADMIN:
+            if send_student_message(
+                student["id"], school_id, subject, message, RECIPIENT_ADMIN,
+            ):
+                flash("Message sent to school admin.", "success")
+                return redirect(url_for("student_portal.messages"))
+            else:
+                flash("Could not send message. Ask your school to run the latest database update.", "error")
         else:
-            flash("Could not send message.", "error")
+            flash("Please select who to send the message to.", "error")
 
     ctx = _ctx("messages", student)
     ctx.update({
         "messages_list": get_student_messages(student["id"], school_id),
+        "teachers": teachers,
         "page_title": "Messages",
+        "recipient_label": recipient_label,
     })
     return render_template("student_portal/messages.html", **ctx)
