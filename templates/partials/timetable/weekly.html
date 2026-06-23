@@ -1,0 +1,138 @@
+{# Weekly timetable — student, teacher, parent (read-only) + admin (edit) #}
+
+<div class="tt-app"
+     data-slots='{{ tt_slots | tojson }}'
+     data-time-ranges='{{ tt_time_ranges | tojson }}'
+     data-classes='{{ tt_class_options | default([]) | tojson }}'
+     data-subjects='{{ tt_subjects | default([]) | tojson }}'
+     data-teachers='{{ tt_teachers | default([]) | tojson }}'
+     data-colors='{{ tt_colors | default([]) | tojson }}'
+     data-can-edit="{{ 'true' if tt_can_edit else 'false' }}"
+     data-admin-mode="{{ 'true' if tt_admin_mode else 'false' }}"
+     data-selected-class="{{ selected_class_id | default('') }}"
+     data-api-add="{{ tt_api_add | default('') }}"
+     data-api-update="{{ tt_api_update | default('') }}"
+     data-api-delete="{{ tt_api_delete | default('') }}">
+
+  <header class="tt-header">
+    <button type="button" class="tt-header-btn tt-menu-btn" aria-label="Open menu">
+      <i class="ti ti-menu-2"></i>
+    </button>
+    <h1 class="tt-header-title">{{ tt_title | default('Class Timetable') }}</h1>
+    <div class="tt-header-actions">
+      <button type="button" class="tt-header-btn tt-search-btn" aria-label="Search timetable">
+        <i class="ti ti-search"></i>
+      </button>
+      {% if tt_can_edit %}
+      <button type="button" class="tt-header-btn tt-btn-add tt-add-btn" aria-label="Add class">
+        <i class="ti ti-plus"></i>
+      </button>
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="tt-search-wrap">
+    <input type="search" class="tt-search-input" placeholder="Search subject, teacher, or room…" aria-label="Search timetable" />
+  </div>
+
+  <div class="tt-filters">
+    {% if not tt_admin_mode %}
+    <select class="tt-class-select tt-class-filter" aria-label="Filter by class">
+      <option value="">All Classes</option>
+      {% for c in tt_class_options | default([]) %}
+      <option value="{{ c.id }}">{{ c.label }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+    <div class="tt-legend"></div>
+    <button type="button" class="tt-toggle-details active" aria-label="Toggle details" title="Show/hide details">
+      <i class="ti ti-eye"></i>
+    </button>
+  </div>
+
+  <div class="tt-grid-wrap">
+    <div class="tt-schedule" role="grid" aria-label="Weekly timetable">
+      <div class="tt-time-header" role="row"></div>
+      <div class="tt-body"></div>
+      <div class="tt-now-line" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  {% if tt_can_edit %}
+  <div class="tt-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="tt-modal-title">
+    <div class="tt-modal">
+      <h2 class="tt-modal-title" id="tt-modal-title">Assign Class Slot</h2>
+      <form class="tt-modal-form">
+        <div class="tt-form-row">
+          <label for="tt-teacher">Teacher</label>
+          <select id="tt-teacher" name="teacher_id" required>
+            <option value="">Select teacher</option>
+            {% for t in tt_teachers | default([]) %}
+            <option value="{{ t.id }}">{{ t.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="tt-form-row">
+          <label for="tt-subject">Subject</label>
+          <select id="tt-subject" name="subject_id" required>
+            <option value="">Select subject</option>
+            {% for s in tt_subjects | default([]) %}
+            <option value="{{ s.id }}">{{ s.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="tt-form-row">
+          <label for="tt-class">Class / Section</label>
+          <select id="tt-class" name="class_id" required>
+            {% for c in tt_class_options | default([]) %}
+            <option value="{{ c.id }}" {% if selected_class_id == c.id %}selected{% endif %}>{{ c.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="tt-form-row">
+          <label for="tt-room">Room</label>
+          <input id="tt-room" name="room" type="text" placeholder="e.g. Room 204" />
+        </div>
+        <div class="tt-form-row">
+          <label for="tt-day">Day</label>
+          <select id="tt-day" name="day_of_week" required>
+            <option value="monday">Monday</option>
+            <option value="tuesday">Tuesday</option>
+            <option value="wednesday">Wednesday</option>
+            <option value="thursday">Thursday</option>
+            <option value="friday">Friday</option>
+            <option value="saturday">Saturday</option>
+          </select>
+        </div>
+        <div class="tt-form-grid">
+          <div class="tt-form-row">
+            <label for="tt-start">Start time</label>
+            <select id="tt-start" name="start_time" required>
+              {% for t in hourly_starts | default(['08:00','09:00','10:00','11:00','12:00','13:00']) %}
+              <option value="{{ t }}">{{ t }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="tt-form-row">
+            <label for="tt-end">End time</label>
+            <select id="tt-end" name="end_time" required>
+              {% for t in hourly_ends | default(['09:00','10:00','11:00','12:00','13:00','14:00']) %}
+              <option value="{{ t }}">{{ t }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="tt-form-row">
+          <label>Color</label>
+          <div class="tt-color-picker"></div>
+        </div>
+        <div class="tt-modal-actions">
+          <button type="button" class="tt-btn tt-btn-outline tt-modal-close">Cancel</button>
+          <button type="button" class="tt-btn tt-btn-danger tt-btn-delete" style="display:none;">Delete</button>
+          <button type="submit" class="tt-btn tt-btn-primary">Save Slot</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</div>

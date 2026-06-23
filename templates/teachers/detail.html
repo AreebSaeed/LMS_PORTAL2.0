@@ -83,29 +83,12 @@
               </tbody>
             </table>
             {% else %}
-            <div class="empty-state">No timetable slots yet.</div>
+            <div class="empty-state">No timetable slots assigned yet.</div>
             {% endif %}
-            <form method="POST" action="{{ url_for('teachers.add_timetable', teacher_id=teacher.id) }}" class="inline-form" style="margin-top:20px;">
-              <p class="field-hint" style="font-weight:600;margin-bottom:10px;">Add Timetable Slot</p>
-              <div class="form-grid-2">
-                <select class="form-input" name="day_of_week" required>
-                  <option value="">Day…</option>
-                  {% for d in days_of_week %}<option value="{{ d }}">{{ d|capitalize }}</option>{% endfor %}
-                </select>
-                <input class="form-input" type="time" name="start_time" required />
-                <input class="form-input" type="time" name="end_time" required />
-                <select class="form-input" name="class_id">
-                  <option value="">Class…</option>
-                  {% for c in all_classes %}<option value="{{ c.id }}">{{ c.name or c.grade }}{% if c.section %}-{{ c.section }}{% endif %}</option>{% endfor %}
-                </select>
-                <select class="form-input" name="subject_id">
-                  <option value="">Subject…</option>
-                  {% for s in all_subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
-                </select>
-                <input class="form-input" name="room" placeholder="Room" />
-              </div>
-              <button type="submit" class="action-btn btn-primary" style="margin-top:12px;">Add Slot</button>
-            </form>
+            <p class="field-hint" style="margin-top:16px;">
+              Timetable is managed by admin.
+              <a href="{{ url_for('timetable.index') }}">Open Timetable Manager</a>
+            </p>
           </div>
         </div>
 

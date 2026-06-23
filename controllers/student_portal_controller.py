@@ -11,7 +11,6 @@ from models.student_portal_model import (
     get_attendance_summary,
     get_daily_attendance,
     get_monthly_attendance,
-    get_class_timetable,
     get_exam_results,
     get_grade_summary,
     get_upcoming_exams,
@@ -24,6 +23,13 @@ from models.student_portal_model import (
     get_student_messages,
     send_student_message,
 )
+from models.timetable_model import (
+    fetch_class_timetable,
+    build_time_ranges,
+    COLOR_OPTIONS,
+    _class_label,
+)
+from models.class_model import get_class_by_id
 from models.homework_model import (
     get_homework_for_student,
     get_homework_by_id,
@@ -107,13 +113,23 @@ def attendance():
 @student_required
 def timetable():
     student = _load_student()
-    slots = get_class_timetable(student.get("class_id"), session["school_id"])
-    day_name = date.today().strftime("%A").lower()
+    school_id = session["school_id"]
+    raw = fetch_class_timetable(student.get("class_id"), school_id)
+    class_opts = []
+    if student.get("class_id"):
+        cls = get_class_by_id(student["class_id"], school_id)
+        if cls:
+            class_opts = [{"id": cls["id"], "label": _class_label(cls)}]
+
     ctx = _ctx("timetable", student)
     ctx.update({
-        "timetable": slots,
-        "todays_schedule": [s for s in slots if s.get("day_of_week") == day_name],
-        "page_title": "My Timetable",
+        "page_title": "Class Timetable",
+        "tt_slots": raw,
+        "tt_time_ranges": build_time_ranges(),
+        "tt_class_options": class_opts,
+        "tt_can_edit": False,
+        "tt_title": "Class Timetable",
+        "tt_colors": COLOR_OPTIONS,
     })
     return render_template("student_portal/timetable.html", **ctx)
 

@@ -32,6 +32,12 @@ from models.homework_model import (
     add_teacher_comment,
 )
 from models.attendance_model import get_students_for_class
+from models.timetable_model import (
+    normalize_teacher_slots,
+    build_time_ranges,
+    class_filter_options,
+    COLOR_OPTIONS,
+)
 
 teacher_portal_bp = Blueprint("teacher_portal", __name__)
 
@@ -124,11 +130,23 @@ def students():
 @teacher_required
 def timetable():
     teacher = _load_teacher()
+    raw = get_timetable(teacher["id"])
+    slots = normalize_teacher_slots(raw, teacher_name=teacher.get("full_name"))
+    assigned_classes = get_assigned_classes(teacher["id"])
+    class_opts = class_filter_options(slots) or [
+        {"id": c["id"], "label": (c.get("name") or c.get("grade") or "Class") + (f" — {c['section']}" if c.get("section") else "")}
+        for c in assigned_classes
+    ]
+
     ctx = _ctx("timetable", teacher)
     ctx.update({
-        "timetable": get_timetable(teacher["id"]),
-        "todays_schedule": get_todays_schedule(teacher["id"]),
-        "page_title": "My Timetable",
+        "page_title": "Class Timetable",
+        "tt_slots": slots,
+        "tt_time_ranges": build_time_ranges(),
+        "tt_class_options": class_opts,
+        "tt_colors": COLOR_OPTIONS,
+        "tt_can_edit": False,
+        "tt_title": "Class Timetable",
     })
     return render_template("teacher_portal/timetable.html", **ctx)
 

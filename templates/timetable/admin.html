@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — School Portal{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/timetable.css') }}" />
+{% endblock %}
+{% block body_class %}timetable-page{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% set active_nav = 'timetable' %}
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content main-content--flush">
+    <div class="page-body page-body--timetable">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash-{{ category }} tt-flash">{{ message }}</div>{% endfor %}
+      {% endwith %}
+      <form method="GET" class="tt-admin-class-bar" id="tt-class-form">
+        <label for="admin-class-pick">Manage timetable for</label>
+        <select id="admin-class-pick" name="class_id" class="tt-class-select" onchange="this.form.submit()">
+          {% for c in tt_class_options %}
+          <option value="{{ c.id }}" {% if selected_class_id == c.id %}selected{% endif %}>{{ c.label }}</option>
+          {% endfor %}
+        </select>
+        <span class="tt-sync-hint"><i class="ti ti-refresh"></i> Syncs to all students in this class</span>
+      </form>
+      {% include "partials/timetable/weekly.html" %}
+    </div>
+  </main>
+</div>
+{% endblock %}
+{% block extra_js %}
+  <script src="{{ url_for('static', filename='js/timetable.js') }}"></script>
+{% endblock %}

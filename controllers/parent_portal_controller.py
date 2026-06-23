@@ -16,12 +16,18 @@ from models.parent_portal_model import (
     get_fee_by_id,
     ensure_receipt,
     get_exam_results_for_students,
-    get_class_timetable,
     get_announcements,
     get_upcoming_exams,
     get_parent_messages,
     send_parent_message,
 )
+from models.timetable_model import (
+    fetch_class_timetable,
+    build_time_ranges,
+    COLOR_OPTIONS,
+    _class_label,
+)
+from models.class_model import get_class_by_id, get_class_teachers
 from models.homework_model import (
     get_homework_for_students,
     get_homework_for_student,
@@ -29,7 +35,6 @@ from models.homework_model import (
     get_homework_submission,
     mark_homework_seen,
 )
-from models.class_model import get_class_by_id, get_class_teachers
 
 parent_portal_bp = Blueprint("parent_portal", __name__)
 
@@ -285,13 +290,26 @@ def results():
 @parent_required
 def timetable():
     parent = _load_parent()
-    student, children = _resolve_student(parent, session["school_id"])
-    slots = get_class_timetable(student.get("class_id") if student else None, session["school_id"]) if student else []
+    school_id = session["school_id"]
+    student, children = _resolve_student(parent, school_id)
+    raw = fetch_class_timetable(student.get("class_id") if student else None, school_id) if student else []
+    class_opts = []
+    if student and student.get("class_id"):
+        cls = get_class_by_id(student["class_id"], school_id)
+        if cls:
+            class_opts = [{"id": cls["id"], "label": _class_label(cls)}]
+
     ctx = _ctx("timetable", parent)
     ctx.update({
         "student": student,
-        "timetable": slots,
-        "page_title": "Timetable",
+        "children": children,
+        "page_title": "Class Timetable",
+        "tt_slots": raw,
+        "tt_time_ranges": build_time_ranges(),
+        "tt_class_options": class_opts,
+        "tt_can_edit": False,
+        "tt_title": (student["full_name"] + " — Timetable") if student else "Class Timetable",
+        "tt_colors": COLOR_OPTIONS,
     })
     return render_template("parent_portal/timetable.html", **ctx)
 
