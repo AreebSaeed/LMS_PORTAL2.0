@@ -4,6 +4,45 @@
   width: 100%;
 }
 
+.child-selector-bar {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+}
+
+.child-selector-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.child-selector-form .field-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-600);
+}
+
+.child-selector-form .form-input {
+  min-width: 220px;
+  max-width: 100%;
+}
+
+.picker-subtitle {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--gray-600);
+}
+
+.child-card--pick {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
 .children-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));

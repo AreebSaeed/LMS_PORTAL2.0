@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "parent_portal/_macros.html" import child_selector %}
 {% block title %}{{ page_title }} — School Portal{% endblock %}
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
@@ -10,14 +11,14 @@
   <main class="main-content">
     <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
     <div class="page-body">
+      {{ child_selector(children, student, url_for('parent_portal.results')) }}
       <div class="section-card">
         <div class="section-body" style="padding:0;">
           <table class="data-table">
-            <thead><tr><th>Student</th><th>Exam</th><th>Date</th><th>Marks</th><th>Grade</th><th>Remarks</th></tr></thead>
+            <thead><tr><th>Exam</th><th>Date</th><th>Marks</th><th>Grade</th><th>Remarks</th></tr></thead>
             <tbody>
               {% for r in results %}
               <tr>
-                <td>{{ r.student_name }}</td>
                 <td>{{ r.exam_title }}</td>
                 <td>{{ r.exam.exam_date if r.exam else '—' }}</td>
                 <td>{{ r.marks_obtained or '—' }}/{{ r.max_marks }}</td>
@@ -25,7 +26,7 @@
                 <td>{{ r.remarks or '—' }}</td>
               </tr>
               {% else %}
-              <tr><td colspan="6" class="empty-state">No exam results published yet.</td></tr>
+              <tr><td colspan="5" class="empty-state">No exam results published yet.</td></tr>
               {% endfor %}
             </tbody>
           </table>

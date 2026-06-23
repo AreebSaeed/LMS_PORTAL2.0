@@ -28,7 +28,6 @@ from models.timetable_model import (
 )
 from models.class_model import get_class_by_id, get_class_teachers
 from models.homework_model import (
-    get_homework_for_students,
     get_homework_for_student,
     get_homework_by_id,
     get_homework_submission,
@@ -60,17 +59,29 @@ def _ctx(active_nav: str, parent=None):
 
 
 def _resolve_student(parent, school_id, req=None):
+    """Return linked student; requires explicit student_id when parent has multiple children."""
     req = req or request
     student_id = req.args.get("student_id") or req.form.get("student_id")
     children = get_linked_students(parent["id"])
     if not children:
         return None, children
-    if student_id:
-        if not parent_has_student(parent["id"], student_id):
-            abort(403)
-        student = get_student_by_id(student_id, school_id)
-        return student, children
-    return get_student_by_id(children[0]["id"], school_id), children
+    if not student_id:
+        if len(children) == 1:
+            student_id = children[0]["id"]
+        else:
+            return None, children
+    if not parent_has_student(parent["id"], student_id):
+        abort(403)
+    student = get_student_by_id(student_id, school_id)
+    return student, children
+
+
+def _child_picker_response(ctx, subtitle: str, route_name: str):
+    ctx.update({
+        "picker_subtitle": subtitle,
+        "picker_route": route_name,
+    })
+    return render_template("parent_portal/child_picker.html", **ctx)
 
 
 @parent_portal_bp.route("/")
@@ -125,13 +136,20 @@ def attendance():
     parent = _load_parent()
     school_id = session["school_id"]
     student, children = _resolve_student(parent, school_id)
+    ctx = _ctx("attendance", parent)
+
+    if not student and children:
+        ctx["page_title"] = "Attendance"
+        return _child_picker_response(
+            ctx, "Choose a child to view their attendance.", "parent_portal.attendance"
+        )
+
     today = date.today()
     year = int(request.args.get("year", today.year))
     month = int(request.args.get("month", today.month))
     att_date = request.args.get("date", today.isoformat())
     view = request.args.get("view", "monthly")
 
-    ctx = _ctx("attendance", parent)
     ctx.update({
         "student": student,
         "view": view,
@@ -150,13 +168,24 @@ def attendance():
 @parent_required
 def fees():
     parent = _load_parent()
-    children = get_linked_students(parent["id"])
-    fee_records = get_fees_for_students(children, session["school_id"])
+    school_id = session["school_id"]
+    student, children = _resolve_student(parent, school_id)
+    ctx = _ctx("fees", parent)
+
+    if not student and children:
+        ctx["page_title"] = "Fee Status"
+        return _child_picker_response(
+            ctx, "Choose a child to view their fee challans.", "parent_portal.fees"
+        )
+
+    fee_records = get_fees_for_students(children, school_id)
+    if student:
+        fee_records = [f for f in fee_records if f.get("student_id") == student["id"]]
     paid = [f for f in fee_records if f.get("status") == "paid"]
     unpaid = [f for f in fee_records if f.get("status") in ("pending", "partial", "overdue")]
 
-    ctx = _ctx("fees", parent)
     ctx.update({
+        "student": student,
         "fee_records": fee_records,
         "paid_fees": paid,
         "unpaid_fees": unpaid,
@@ -274,10 +303,25 @@ def fee_receipt(fee_id):
 @parent_required
 def homework():
     parent = _load_parent()
-    children = get_linked_students(parent["id"])
+    school_id = session["school_id"]
+    student, children = _resolve_student(parent, school_id)
     ctx = _ctx("homework", parent)
+
+    if not student and children:
+        ctx["page_title"] = "Homework & Classwork"
+        return _child_picker_response(
+            ctx, "Choose a child to view their homework.", "parent_portal.homework"
+        )
+
+    hw_rows = get_homework_for_student(student, school_id, limit=30)
+    homework_list = [
+        {**hw, "child_name": student["full_name"], "student_id": student["id"]}
+        for hw in hw_rows
+    ]
+
     ctx.update({
-        "homework_list": get_homework_for_students(children, session["school_id"], limit=30),
+        "student": student,
+        "homework_list": homework_list,
         "page_title": "Homework & Classwork",
     })
     return render_template("parent_portal/homework.html", **ctx)
@@ -320,10 +364,19 @@ def homework_detail(homework_id):
 @parent_required
 def results():
     parent = _load_parent()
-    children = get_linked_students(parent["id"])
+    school_id = session["school_id"]
+    student, children = _resolve_student(parent, school_id)
     ctx = _ctx("results", parent)
+
+    if not student and children:
+        ctx["page_title"] = "Exam Results"
+        return _child_picker_response(
+            ctx, "Choose a child to view their exam results.", "parent_portal.results"
+        )
+
     ctx.update({
-        "results": get_exam_results_for_students(children, session["school_id"]),
+        "student": student,
+        "results": get_exam_results_for_students([student], school_id),
         "page_title": "Exam Results",
     })
     return render_template("parent_portal/results.html", **ctx)
@@ -335,6 +388,14 @@ def timetable():
     parent = _load_parent()
     school_id = session["school_id"]
     student, children = _resolve_student(parent, school_id)
+    ctx = _ctx("timetable", parent)
+
+    if not student and children:
+        ctx["page_title"] = "Class Timetable"
+        return _child_picker_response(
+            ctx, "Choose a child to view their class timetable.", "parent_portal.timetable"
+        )
+
     raw = fetch_class_timetable(student.get("class_id") if student else None, school_id) if student else []
     class_opts = []
     if student and student.get("class_id"):
@@ -342,7 +403,6 @@ def timetable():
         if cls:
             class_opts = [{"id": cls["id"], "label": _class_label(cls)}]
 
-    ctx = _ctx("timetable", parent)
     ctx.update({
         "student": student,
         "children": children,

@@ -12,24 +12,20 @@
     <div class="page-body">
       <div class="section-card">
         <div class="section-header">
-          <div class="section-title">Linked Children</div>
+          <div class="section-title">Select a child</div>
         </div>
         <div class="section-body">
-          <p class="picker-subtitle">Select a child to view their profile and school details.</p>
-          {% if children %}
+          {% if picker_subtitle %}<p class="picker-subtitle">{{ picker_subtitle }}</p>{% endif %}
           <div class="children-grid">
             {% for c in children %}
-            <a href="{{ url_for('parent_portal.child_profile', student_id=c.id) }}" class="child-card">
+            <a href="{{ url_for(picker_route, student_id=c.id) }}" class="child-card child-card--pick">
               <div class="child-avatar">{{ c.full_name[0]|upper }}</div>
               <div class="child-name">{{ c.full_name }}</div>
               <div class="child-meta">Class: {{ c.class_grade or '—' }}{% if c.section %} - {{ c.section }}{% endif %}</div>
-              <div class="child-meta">Adm: {{ c.admission_number }}</div>
+              <div class="child-meta">Adm: {{ c.admission_number or '—' }}</div>
             </a>
             {% endfor %}
           </div>
-          {% else %}
-          <div class="empty-state">No children linked to your account. Contact the school admin.</div>
-          {% endif %}
         </div>
       </div>
     </div>
