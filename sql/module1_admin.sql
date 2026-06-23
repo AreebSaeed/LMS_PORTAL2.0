@@ -64,8 +64,15 @@ CREATE TABLE IF NOT EXISTS announcements (
   title TEXT NOT NULL,
   body TEXT,
   author_id UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
+  audience_teachers BOOLEAN NOT NULL DEFAULT TRUE,
+  audience_students BOOLEAN NOT NULL DEFAULT TRUE,
+  audience_parents BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS audience_teachers BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS audience_students BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS audience_parents BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- Admissions
 CREATE TABLE IF NOT EXISTS admissions (

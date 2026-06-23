@@ -362,7 +362,7 @@ def announcements():
     parent = _load_parent()
     ctx = _ctx("announcements", parent)
     ctx.update({
-        "announcements": get_announcements(session["school_id"]),
+        "announcements": get_announcements(session["school_id"], role="parent"),
         "page_title": "Announcements",
     })
     return render_template("parent_portal/announcements.html", **ctx)

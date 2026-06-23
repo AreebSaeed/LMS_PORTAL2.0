@@ -72,6 +72,92 @@
 .badge-pending { background: #FEF3C7; color: #92400E; }
 .badge-paid { background: #D1FAE5; color: #065F46; }
 
+.attendance-filter-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+
+.attendance-filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 12px;
+}
+
+.attendance-filter-form .filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.attendance-filter-form .field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.attendance-filter-form .form-input {
+  height: 36px;
+  padding: 0 10px;
+  font-size: 13px;
+  flex: none;
+  width: auto;
+  min-width: 0;
+}
+
+.attendance-filter-form .filter-field--month .form-input {
+  width: 108px;
+}
+
+.attendance-filter-form .filter-field--year .form-input {
+  width: 84px;
+}
+
+.attendance-filter-form .filter-field--date .form-input {
+  width: 152px;
+}
+
+.attendance-filter-form .action-btn {
+  height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .attendance-filter-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: end;
+  }
+
+  .attendance-filter-form .filter-field--date,
+  .attendance-filter-form .filter-field--month,
+  .attendance-filter-form .filter-field--year {
+    grid-column: span 1;
+  }
+
+  .attendance-filter-form .filter-field--date {
+    grid-column: 1 / -1;
+  }
+
+  .attendance-filter-form .filter-field .form-input {
+    width: 100%;
+  }
+
+  .attendance-filter-form .action-btn {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
 @media (max-width: 480px) {
   .subjects-grid, .materials-grid {
     grid-template-columns: 1fr;

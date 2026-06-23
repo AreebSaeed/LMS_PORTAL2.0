@@ -1,7 +1,14 @@
 from functools import wraps
-from flask import Blueprint, render_template, session, redirect, url_for
+from flask import Blueprint, render_template, request, session, redirect, url_for, flash
+from controllers.auth_helpers import school_admin_required
 from models.school_model import get_all_schools, get_school_by_id, get_school_stats
 from models.admin_model import get_admin_dashboard_data
+from models.admission_model import (
+    ADMISSION_STATUSES,
+    list_admissions,
+    create_admission,
+    update_admission_status,
+)
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -93,3 +100,57 @@ def index():
             context.update(stats)
 
     return render_template(template, **context)
+
+
+def _admin_page_context(active_nav: str):
+    school_id = session["school_id"]
+    return {
+        "school": get_school_by_id(school_id),
+        "school_id": school_id,
+        "full_name": session.get("full_name"),
+        "role_label": "Admin",
+        "active_nav": active_nav,
+    }
+
+
+@dashboard_bp.route("/admissions", methods=["GET", "POST"])
+@school_admin_required
+def admissions():
+    school_id = session["school_id"]
+
+    if request.method == "POST":
+        action = request.form.get("action", "create")
+        if action == "create":
+            name = request.form.get("student_name", "").strip()
+            grade = request.form.get("grade", "").strip()
+            if not name:
+                flash("Student name is required.", "error")
+            elif create_admission(school_id, name, grade):
+                flash("Admission application recorded.", "success")
+                return redirect(url_for("dashboard.admissions"))
+            else:
+                flash("Could not save admission.", "error")
+        elif action in ADMISSION_STATUSES:
+            admission_id = request.form.get("admission_id", "")
+            if admission_id and update_admission_status(school_id, admission_id, action):
+                flash(f"Application marked as {action}.", "success")
+                return redirect(url_for("dashboard.admissions"))
+            flash("Could not update application.", "error")
+
+    ctx = _admin_page_context("admissions")
+    admissions_list = list_admissions(school_id)
+    ctx.update({
+        "admissions": admissions_list,
+        "pending_count": sum(1 for a in admissions_list if a.get("status") == "pending"),
+        "statuses": ADMISSION_STATUSES,
+        "page_title": "Admissions",
+    })
+    return render_template("admissions/index.html", **ctx)
+
+
+@dashboard_bp.route("/reports")
+@school_admin_required
+def reports():
+    ctx = _admin_page_context("reports")
+    ctx["page_title"] = "Reports"
+    return render_template("reports/index.html", **ctx)

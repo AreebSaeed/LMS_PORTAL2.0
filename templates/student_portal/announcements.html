@@ -10,9 +10,20 @@
   <main class="main-content">
     <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
     <div class="page-body">
-      {% for a in school_announcements %}<div class="section-card"><div class="section-header"><div class="section-title">{{ a.title }}</div><span class="announcement-date">{{ a.created_at[:10] if a.created_at else '' }}</span></div><div class="section-body"><p>{{ a.body or '' }}</p><span class="badge">School</span></div></div>{% endfor %}
-      {% for a in class_announcements %}<div class="section-card"><div class="section-header"><div class="section-title">{{ a.title }}</div><span class="announcement-date">{{ a.created_at[:10] if a.created_at else '' }}</span></div><div class="section-body"><p>{{ a.body or '' }}</p><span class="badge">Class</span></div></div>{% endfor %}
-      {% if not school_announcements and not class_announcements %}<div class="empty-state">No announcements.</div>{% endif %}
+      {% for a in announcements %}
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">{{ a.title }}</div>
+          <span class="announcement-date">{{ a.created_at[:10] if a.created_at else '' }}</span>
+        </div>
+        <div class="section-body">
+          <p>{{ a.body or '' }}</p>
+          <span class="badge">{{ a.type_label }}</span>
+        </div>
+      </div>
+      {% else %}
+      <div class="empty-state">No announcements.</div>
+      {% endfor %}
     </div>
   </main>
 </div>

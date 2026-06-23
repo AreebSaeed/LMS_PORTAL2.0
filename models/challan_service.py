@@ -25,6 +25,19 @@ def _fmt_amount(val) -> str:
     return f"{n:,.2f}"
 
 
+def _pdf_safe(text) -> str:
+    """Helvetica in FPDF only supports Latin-1; strip/replace common Unicode."""
+    if text is None:
+        return ""
+    s = str(text)
+    for src, dst in (
+        ("\u2014", "-"), ("\u2013", "-"), ("\u2022", "*"),
+        ("—", "-"), ("–", "-"), ("•", "*"),
+    ):
+        s = s.replace(src, dst)
+    return s.encode("latin-1", "replace").decode("latin-1")
+
+
 def build_challan_line_items(fee: dict) -> list:
     items = []
     mapping = [
@@ -77,6 +90,14 @@ def student_class_label(fee: dict, student: dict) -> str:
     return g or sec or "—"
 
 
+def _student_field(student: dict, fee: dict, field: str, fallback="—") -> str:
+    fee_student = fee.get("student") if isinstance(fee.get("student"), dict) else {}
+    val = (student or {}).get(field) or fee_student.get(field)
+    if val is None or str(val).strip() == "":
+        return fallback
+    return str(val).strip()
+
+
 def build_challan_context(school: dict, fee: dict, student: dict) -> dict:
     items = build_challan_line_items(fee)
     total = float(fee.get("total_amount") or fee.get("amount") or 0)
@@ -86,6 +107,8 @@ def build_challan_context(school: dict, fee: dict, student: dict) -> dict:
         "billing_title": challan_billing_title(fee),
         "challan_number": fee.get("challan_number") or "—",
         "student_name": (student or {}).get("full_name") or fee.get("student_name") or "—",
+        "registration_number": _student_field(student, fee, "admission_number"),
+        "roll_number": _student_field(student, fee, "roll_number"),
         "class_label": student_class_label(fee, student),
         "due_date": format_due_date(fee),
         "line_items": items,
@@ -124,27 +147,29 @@ def generate_challan_pdf(school: dict, fee: dict, student: dict) -> bytes:
         pdf.set_xy(x + 2, y0)
         pdf.set_font("Helvetica", "B", 13)
         pdf.set_text_color(*navy)
-        pdf.cell(col_w - 4, 7, ctx["school_name"], align="C", ln=True)
+        pdf.cell(col_w - 4, 7, _pdf_safe(ctx["school_name"]), align="C", ln=True)
 
         pdf.set_x(x + 2)
         pdf.set_font("Helvetica", "B", 9)
-        pdf.cell(col_w - 4, 5, ctx["billing_title"], align="C", ln=True)
+        pdf.cell(col_w - 4, 5, _pdf_safe(ctx["billing_title"]), align="C", ln=True)
 
         pdf.ln(2)
         pdf.set_text_color(0, 0, 0)
         for label, val in [
             ("Challan No:", ctx["challan_number"]),
             ("Student Name:", ctx["student_name"]),
+            ("Reg. No:", ctx["registration_number"]),
+            ("Roll No:", ctx["roll_number"]),
             ("Class / Section:", ctx["class_label"]),
             ("Due Date:", ctx["due_date"]),
         ]:
             pdf.set_x(x + 4)
             pdf.set_font("Helvetica", "B", 8)
-            pdf.cell(28, 5, label)
+            pdf.cell(28, 4.5, label)
             pdf.set_font("Helvetica", "", 8)
-            pdf.cell(col_w - 36, 5, str(val)[:40], ln=True)
+            pdf.cell(col_w - 36, 4.5, _pdf_safe(val)[:40], ln=True)
 
-        pdf.ln(2)
+        pdf.ln(1)
         pdf.set_fill_color(*grey_bg)
         pdf.set_font("Helvetica", "B", 8)
         pdf.set_x(x + 4)
@@ -154,13 +179,13 @@ def generate_challan_pdf(school: dict, fee: dict, student: dict) -> bytes:
         pdf.set_font("Helvetica", "", 8)
         for item in ctx["line_items"]:
             pdf.set_x(x + 4)
-            pdf.cell(col_w * 0.62 - 4, 5.5, item["label"], border="LR")
-            pdf.cell(col_w * 0.38, 5.5, _fmt_amount(item["amount"]), border="LR", align="R", ln=True)
+            pdf.cell(col_w * 0.62 - 4, 5.5, _pdf_safe(item["label"]), border="LR")
+            pdf.cell(col_w * 0.38, 5.5, _pdf_safe(_fmt_amount(item["amount"])), border="LR", align="R", ln=True)
 
         pdf.set_x(x + 4)
         pdf.set_font("Helvetica", "B", 8)
         pdf.cell(col_w * 0.62 - 4, 6, "Total", border=1)
-        pdf.cell(col_w * 0.38, 6, ctx["total_formatted"], border=1, align="R", ln=True)
+        pdf.cell(col_w * 0.38, 6, _pdf_safe(ctx["total_formatted"]), border=1, align="R", ln=True)
 
         pdf.ln(4)
         pdf.set_font("Helvetica", "", 7)
@@ -171,7 +196,7 @@ def generate_challan_pdf(school: dict, fee: dict, student: dict) -> bytes:
         pdf.set_xy(x + 2, 168)
         pdf.set_font("Helvetica", "B", 8)
         pdf.set_text_color(*navy)
-        pdf.cell(col_w - 4, 5, f"— {copy_label} —", align="C")
+        pdf.cell(col_w - 4, 5, _pdf_safe(f"- {copy_label} -"), align="C")
 
     pdf.set_text_color(0, 0, 0)
     pdf.set_draw_color(200, 214, 229)
@@ -185,7 +210,7 @@ def generate_challan_pdf(school: dict, fee: dict, student: dict) -> bytes:
     pdf.set_text_color(60, 60, 60)
     for term in ctx["terms"]:
         pdf.set_x(14)
-        pdf.cell(0, 4, f"• {term}", ln=True)
+        pdf.cell(0, 4, _pdf_safe(f"* {term}"), ln=True)
 
     if ctx["is_void"]:
         pdf.set_font("Helvetica", "B", 24)
@@ -193,4 +218,8 @@ def generate_challan_pdf(school: dict, fee: dict, student: dict) -> bytes:
         pdf.text(110, 100, "VOID")
 
     out = pdf.output()
-    return out if isinstance(out, bytes) else out.encode("latin-1")
+    if isinstance(out, bytes):
+        return out
+    if isinstance(out, bytearray):
+        return bytes(out)
+    return str(out).encode("latin-1")

@@ -16,10 +16,37 @@
         <a href="{{ url_for('student_portal.attendance', view='monthly', year=year, month=month) }}" class="tab-link {% if view == 'monthly' %}active{% endif %}">Monthly</a>
       </div>
       {% if view == 'daily' %}
-      <form method="GET" class="search-bar"><input type="hidden" name="view" value="daily" /><input class="form-input" type="date" name="date" value="{{ att_date }}" /><button type="submit" class="action-btn btn-primary">View</button></form>
+      <div class="attendance-filter-card">
+        <form method="GET" class="attendance-filter-form">
+          <input type="hidden" name="view" value="daily" />
+          <label class="filter-field filter-field--date">
+            <span class="field-label">Date</span>
+            <input class="form-input" type="date" name="date" value="{{ att_date }}" />
+          </label>
+          <button type="submit" class="action-btn btn-primary btn-sm">View</button>
+        </form>
+      </div>
       <div class="section-card"><div class="section-body">{% if daily_record %}<span class="badge badge-{{ daily_record.status }}">{{ daily_record.status|capitalize }}</span>{% else %}<div class="empty-state">No record for this date.</div>{% endif %}</div></div>
       {% else %}
-      <form method="GET" class="search-bar"><input type="hidden" name="view" value="monthly" /><input class="form-input" type="number" name="month" value="{{ month }}" min="1" max="12" style="width:80px;" /><input class="form-input" type="number" name="year" value="{{ year }}" style="width:100px;" /><button type="submit" class="action-btn btn-primary">View</button></form>
+      {% set month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] %}
+      <div class="attendance-filter-card">
+        <form method="GET" class="attendance-filter-form">
+          <input type="hidden" name="view" value="monthly" />
+          <label class="filter-field filter-field--month">
+            <span class="field-label">Month</span>
+            <select class="form-input" name="month">
+              {% for m in range(1, 13) %}
+              <option value="{{ m }}" {% if month|int == m %}selected{% endif %}>{{ month_names[m - 1] }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="filter-field filter-field--year">
+            <span class="field-label">Year</span>
+            <input class="form-input" type="number" name="year" value="{{ year }}" min="2020" max="2035" />
+          </label>
+          <button type="submit" class="action-btn btn-primary btn-sm">View</button>
+        </form>
+      </div>
       <div class="stats-grid" style="margin-bottom:20px;">
         <div class="stat-card green"><div class="stat-label">Rate</div><div class="stat-value">{{ summary.attendance_pct }}%</div></div>
         <div class="stat-card"><div class="stat-label">Present</div><div class="stat-value">{{ summary.present }}</div></div>

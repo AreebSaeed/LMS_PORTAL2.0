@@ -36,7 +36,7 @@ def get_dashboard_data(parent_id: str, school_id: str, student_id: str = None):
     pending_fees = get_pending_fees_total(children, school_id)
     latest_homework = get_homework_for_students(children, school_id, limit=5)
     latest_result = get_latest_result(children, school_id)
-    announcements = get_announcements(school_id, limit=5)
+    announcements = get_announcements(school_id, limit=5, role="parent")
     upcoming_exams = get_upcoming_exams(children, school_id, limit=5)
     notifications = get_notifications(parent_id, limit=5)
 
@@ -315,19 +315,9 @@ def get_class_timetable(class_id: str, school_id: str):
     return rows
 
 
-def get_announcements(school_id: str, limit=20):
-    try:
-        return (
-            supabase_admin.table("announcements")
-            .select("*")
-            .eq("school_id", school_id)
-            .order("created_at", desc=True)
-            .limit(limit)
-            .execute()
-            .data or []
-        )
-    except Exception:
-        return []
+def get_announcements(school_id: str, limit=20, role=None):
+    from models.announcement_model import list_announcements
+    return list_announcements(school_id, limit=limit, role=role)
 
 
 def get_parent_messages(parent_id: str, school_id: str, limit=30):

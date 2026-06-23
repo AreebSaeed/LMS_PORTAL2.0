@@ -16,6 +16,7 @@ from models.student_portal_model import (
     get_upcoming_exams,
     get_announcements,
     get_class_announcements_for_student,
+    get_merged_announcements_for_student,
     get_subjects_for_student,
     get_fee_summary,
     get_study_materials,
@@ -260,7 +261,11 @@ def fee_challan(fee_id):
 
     school = get_school_by_id(school_id)
     if request.args.get("format") == "pdf":
-        pdf_bytes = generate_challan_pdf(school, fee, student)
+        try:
+            pdf_bytes = generate_challan_pdf(school, fee, student)
+        except Exception:
+            flash("Could not generate challan PDF. Please try again or contact the school office.", "error")
+            return redirect(url_for("student_portal.fee_challan", fee_id=fee_id))
         num = fee.get("challan_number") or fee_id[:8]
         return Response(
             pdf_bytes,
@@ -285,8 +290,7 @@ def announcements():
     school_id = session["school_id"]
     ctx = _ctx("announcements", student)
     ctx.update({
-        "school_announcements": get_announcements(school_id),
-        "class_announcements": get_class_announcements_for_student(student, school_id),
+        "announcements": get_merged_announcements_for_student(student, school_id),
         "page_title": "Announcements",
     })
     return render_template("student_portal/announcements.html", **ctx)

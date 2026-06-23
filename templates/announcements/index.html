@@ -24,10 +24,7 @@
           <div class="section-title">Post School Announcement</div>
         </div>
         <div class="section-body">
-          <p style="color:var(--gray-500);font-size:14px;margin:0 0 16px;">
-            Visible to all teachers, students, and parents in your school.
-          </p>
-          <form method="POST" class="portal-form">
+          <form method="POST" class="portal-form" id="announcement-form">
             <div class="form-row">
               <label class="field-label">Title</label>
               <input class="form-input" type="text" name="title" required placeholder="e.g. Parent-Teacher Meeting" />
@@ -35,6 +32,28 @@
             <div class="form-row">
               <label class="field-label">Message</label>
               <textarea class="form-input" name="body" rows="5" required placeholder="Write your announcement…"></textarea>
+            </div>
+            <div class="form-row">
+              <label class="field-label">Send to</label>
+              <div class="audience-checkboxes">
+                <label class="audience-check">
+                  <input type="checkbox" name="audience_all" id="audience_all" checked />
+                  <span>All</span>
+                </label>
+                <label class="audience-check">
+                  <input type="checkbox" name="audience_teachers" class="audience-role" checked />
+                  <span>Teachers</span>
+                </label>
+                <label class="audience-check">
+                  <input type="checkbox" name="audience_students" class="audience-role" checked />
+                  <span>Students</span>
+                </label>
+                <label class="audience-check">
+                  <input type="checkbox" name="audience_parents" class="audience-role" checked />
+                  <span>Parents</span>
+                </label>
+              </div>
+              <p class="field-hint">Choose who should see this announcement in their portal.</p>
             </div>
             <button type="submit" class="action-btn btn-primary">
               <i class="ti ti-speakerphone"></i> Post Announcement
@@ -54,7 +73,10 @@
               <div style="flex:1;">
                 <div class="announcement-title">{{ a.title }}</div>
                 <div class="announcement-body">{{ a.body or '' }}</div>
-                <div class="announcement-date">{{ a.created_at[:10] if a.created_at else '' }}</div>
+                <div class="announcement-date">
+                  {{ a.created_at[:10] if a.created_at else '' }}
+                  · <span class="badge">{{ format_audience_label(a) }}</span>
+                </div>
               </div>
               <form method="POST" action="{{ url_for('announcements.delete', announcement_id=a.id) }}"
                     onsubmit="return confirm('Delete this announcement?');">
@@ -73,4 +95,25 @@
     </div>
   </main>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  const allBox = document.getElementById('audience_all');
+  const roleBoxes = document.querySelectorAll('.audience-role');
+  if (!allBox || !roleBoxes.length) return;
+
+  function syncFromAll() {
+    roleBoxes.forEach((box) => { box.checked = allBox.checked; });
+  }
+
+  function syncFromRoles() {
+    const allChecked = Array.from(roleBoxes).every((box) => box.checked);
+    allBox.checked = allChecked;
+  }
+
+  allBox.addEventListener('change', syncFromAll);
+  roleBoxes.forEach((box) => box.addEventListener('change', syncFromRoles));
+})();
+</script>
 {% endblock %}

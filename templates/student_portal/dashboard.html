@@ -80,13 +80,18 @@
       <div class="section-card">
         <div class="section-header"><div class="section-title">Announcements</div><a href="{{ url_for('student_portal.announcements') }}" class="action-btn btn-outline btn-sm">View All</a></div>
         <div class="section-body">
-          {% for a in announcements[:3] %}
-          <div class="announcement-item"><div class="announcement-title">{{ a.title }}</div><div class="announcement-body">{{ (a.body or '')[:100] }}</div></div>
+          {% for a in merged_announcements[:5] %}
+          <div class="announcement-item">
+            <div class="announcement-title">
+              {{ a.title }}
+              <span class="badge">{{ a.type_label }}</span>
+            </div>
+            <div class="announcement-body">{{ (a.body or '')[:100] }}{% if a.body and a.body|length > 100 %}…{% endif %}</div>
+            <div class="announcement-date">{{ a.created_at[:10] if a.created_at else '' }}</div>
+          </div>
+          {% else %}
+          <div class="empty-state">No announcements.</div>
           {% endfor %}
-          {% for a in class_announcements[:2] %}
-          <div class="announcement-item"><div class="announcement-title">{{ a.title }} <span class="badge">Class</span></div><div class="announcement-body">{{ (a.body or '')[:100] }}</div></div>
-          {% endfor %}
-          {% if not announcements and not class_announcements %}<div class="empty-state">No announcements.</div>{% endif %}
         </div>
       </div>
     </div>

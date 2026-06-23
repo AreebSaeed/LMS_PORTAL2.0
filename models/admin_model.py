@@ -222,29 +222,30 @@ def get_admin_dashboard_data(school_id: str) -> dict:
 
 
 def get_school_announcements(school_id: str, limit=50):
-    return _fetch_rows(
-        "announcements",
-        school_id,
-        select="id, title, body, author_id, created_at",
-        order_by="-created_at",
-        limit=limit,
-    )
+    from models.announcement_model import list_announcements
+    return list_announcements(school_id, limit=limit)
 
 
 def create_school_announcement(
-    school_id: str, author_id: str, title: str, body: str
+    school_id: str,
+    author_id: str,
+    title: str,
+    body: str,
+    *,
+    audience_teachers: bool = True,
+    audience_students: bool = True,
+    audience_parents: bool = True,
 ):
-    payload = {
-        "school_id": school_id,
-        "author_id": author_id,
-        "title": title.strip(),
-        "body": (body or "").strip() or None,
-    }
-    try:
-        result = supabase_admin.table("announcements").insert(payload).execute()
-        return result.data[0] if result.data else None
-    except Exception:
-        return None
+    from models.announcement_model import create_announcement
+    return create_announcement(
+        school_id,
+        author_id,
+        title,
+        body,
+        audience_teachers=audience_teachers,
+        audience_students=audience_students,
+        audience_parents=audience_parents,
+    )
 
 
 def delete_school_announcement(school_id: str, announcement_id: str) -> bool:

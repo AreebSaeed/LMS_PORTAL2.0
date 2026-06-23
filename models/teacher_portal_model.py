@@ -206,18 +206,8 @@ def _auto_grade(marks: float, max_marks: float) -> str:
 
 
 def get_school_announcements(school_id: str, limit=10):
-    try:
-        return (
-            supabase_admin.table("announcements")
-            .select("*")
-            .eq("school_id", school_id)
-            .order("created_at", desc=True)
-            .limit(limit)
-            .execute()
-            .data or []
-        )
-    except Exception:
-        return []
+    from models.announcement_model import list_announcements
+    return list_announcements(school_id, limit=limit, role="teacher")
 
 
 def get_class_announcements(teacher_id: str, school_id: str, limit=20):

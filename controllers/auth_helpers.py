@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import session, redirect, url_for, flash
+from flask import session, redirect, url_for, flash, jsonify
 
 
 def login_required(f):
@@ -7,6 +7,18 @@ def login_required(f):
     def decorated(*args, **kwargs):
         if "user_id" not in session:
             return redirect(url_for("auth.login"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+def portal_session_required(f):
+    """JSON API guard for logged-in school portal users."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+        if not session.get("school_id"):
+            return jsonify({"error": "No school assigned"}), 403
         return f(*args, **kwargs)
     return decorated
 

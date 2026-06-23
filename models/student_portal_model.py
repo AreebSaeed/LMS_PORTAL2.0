@@ -26,8 +26,9 @@ def get_dashboard_data(student: dict, school_id: str):
     results = get_exam_results(sid, school_id, limit=3)
     latest_result = results[0] if results else None
     upcoming_exams = get_upcoming_exams(student, school_id, limit=5)
-    announcements = get_announcements(school_id, limit=5)
+    announcements = get_announcements(school_id, limit=5, role="student")
     class_ann = get_class_announcements_for_student(student, school_id, limit=5)
+    merged_announcements = get_merged_announcements_for_student(student, school_id, limit=5)
     timetable = get_class_timetable(student.get("class_id"), school_id)
     todays_schedule = [s for s in timetable if s.get("day_of_week") == _today_day_name()]
     subjects = get_subjects_for_student(student, school_id)
@@ -43,6 +44,7 @@ def get_dashboard_data(student: dict, school_id: str):
         "upcoming_exams": upcoming_exams,
         "announcements": announcements,
         "class_announcements": class_ann,
+        "merged_announcements": merged_announcements,
         "todays_schedule": todays_schedule,
         "subjects": subjects,
         "subject_count": len(subjects),
@@ -207,6 +209,21 @@ def get_class_announcements_for_student(student: dict, school_id: str, limit=20)
         return rows[:limit]
     except Exception:
         return []
+
+
+def get_merged_announcements_for_student(student: dict, school_id: str, limit=20):
+    """School + class announcements merged, newest first."""
+    school = [
+        {**a, "announcement_type": "school", "type_label": "School"}
+        for a in get_announcements(school_id, limit=limit, role="student")
+    ]
+    classroom = [
+        {**a, "announcement_type": "class", "type_label": "Class"}
+        for a in get_class_announcements_for_student(student, school_id, limit=limit)
+    ]
+    merged = school + classroom
+    merged.sort(key=lambda a: a.get("created_at") or "", reverse=True)
+    return merged[:limit]
 
 
 def get_subjects_for_student(student: dict, school_id: str):

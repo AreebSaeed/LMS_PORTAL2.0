@@ -13,6 +13,17 @@
 <body class="{% block body_class %}{% endblock %}">
   {% block body %}{% endblock %}
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% if show_announcement_bell %}
+  <script>
+    window.ANNOUNCEMENT_BELL = {
+      unreadUrl: {{ url_for('announcements.api_unread') | tojson }},
+      readUrlTemplate: {{ url_for('announcements.api_mark_read', announcement_type='__TYPE__', announcement_id='__ID__') | tojson }},
+      readAllUrl: {{ url_for('announcements.api_read_all') | tojson }},
+      listUrl: {{ announcement_bell_list_url | tojson }}
+    };
+  </script>
+  <script src="{{ url_for('static', filename='js/announcement-bell.js') }}"></script>
+  {% endif %}
   {% block extra_js %}{% endblock %}
 </body>
 </html>

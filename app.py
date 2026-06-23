@@ -1,4 +1,4 @@
-from flask import Flask, redirect, url_for
+from flask import Flask, redirect, url_for, session
 from config import Config
 from controllers.auth_controller import auth_bp
 from controllers.dashboard_controller import dashboard_bp
@@ -14,11 +14,25 @@ from controllers.fee_controller import fee_bp
 from controllers.announcement_controller import announcement_bp
 from controllers.class_controller import class_bp
 from controllers.timetable_controller import timetable_bp
+from models.announcement_model import announcements_list_url_for_role
 
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    @app.context_processor
+    def inject_announcement_bell():
+        if session.get("user_id") and session.get("school_id"):
+            role = session.get("role", "")
+            return {
+                "show_announcement_bell": role in (
+                    "school_admin", "accountant", "teacher", "student", "parent"
+                ),
+                "announcement_bell_list_url": announcements_list_url_for_role(role)
+                if role else "",
+            }
+        return {"show_announcement_bell": False, "announcement_bell_list_url": ""}
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")

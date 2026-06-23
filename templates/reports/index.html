@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — {{ school.name if school else 'School Portal' }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
+{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include "partials/admin_sidebar.html" %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">{{ page_title }}</div>
+      <div class="topbar-date" id="current-date"></div>
+    </div>
+    <div class="page-body">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">School Reports</div>
+        </div>
+        <div class="section-body">
+          <div class="module-grid">
+            <a href="{{ url_for('attendance.admin_dashboard') }}" class="module-card">
+              <div class="module-icon">📋</div>
+              <div class="module-label">Attendance</div>
+            </a>
+            <a href="{{ url_for('attendance.admin_monthly') }}" class="module-card">
+              <div class="module-icon">📅</div>
+              <div class="module-label">Monthly Attendance</div>
+            </a>
+            <a href="{{ url_for('fees.reports', report_type='paid') }}" class="module-card">
+              <div class="module-icon">✅</div>
+              <div class="module-label">Paid Fees</div>
+            </a>
+            <a href="{{ url_for('fees.reports', report_type='unpaid') }}" class="module-card">
+              <div class="module-icon">💰</div>
+              <div class="module-label">Unpaid Fees</div>
+            </a>
+            <a href="{{ url_for('fees.reports', report_type='defaulters') }}" class="module-card">
+              <div class="module-icon">⚠️</div>
+              <div class="module-label">Fee Defaulters</div>
+            </a>
+            <a href="{{ url_for('exams.index') }}" class="module-card">
+              <div class="module-icon">📝</div>
+              <div class="module-label">Exams & Results</div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}
