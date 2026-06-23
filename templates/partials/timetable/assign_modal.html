@@ -1,0 +1,96 @@
+{# Admin assign / edit slot modal #}
+<div class="tt-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="tt-modal-title">
+  <div class="tt-modal">
+    <h2 class="tt-modal-title" id="tt-modal-title">Assign Class Slot</h2>
+    <form class="tt-modal-form">
+      <div class="tt-form-row">
+        <label for="tt-teacher">Teacher</label>
+        <select id="tt-teacher" name="teacher_id" required>
+          <option value="">Select teacher</option>
+          {% for t in tt_teachers | default([]) %}
+          <option value="{{ t.id }}">{{ t.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="tt-form-row">
+        <label for="tt-subject">Subject</label>
+        <select id="tt-subject" name="subject_id" required>
+          <option value="">Select subject</option>
+          {% for s in tt_subjects | default([]) %}
+          <option value="{{ s.id }}">{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="tt-form-row">
+        <label for="tt-class">Class / Section</label>
+        <select id="tt-class" name="class_id" required>
+          {% for c in tt_class_options | default([]) %}
+          <option value="{{ c.id }}" {% if selected_class_id == c.id %}selected{% endif %}>{{ c.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="tt-availability-panel" id="tt-availability-panel" hidden>
+        <div class="tt-availability-header">
+          <span class="tt-availability-title">Slot availability</span>
+          <span class="tt-availability-summary" id="tt-availability-summary"></span>
+        </div>
+        <div class="tt-availability-legend">
+          <span class="tt-avail-legend-item tt-avail-free"><i></i>Both free</span>
+          <span class="tt-avail-legend-item tt-avail-class"><i></i>Class busy</span>
+          <span class="tt-avail-legend-item tt-avail-teacher"><i></i>Teacher busy</span>
+        </div>
+        <p class="tt-avail-hint" id="tt-avail-hint">Click green cells to select multiple slots</p>
+        <div class="tt-availability-grid" id="tt-availability-grid" aria-label="Weekly availability"></div>
+        <div class="tt-selected-slots-wrap" id="tt-selected-slots-wrap" hidden>
+          <div class="tt-selected-slots-header">
+            <span class="tt-selected-slots-label" id="tt-selected-slots-label">Selected slots</span>
+            <button type="button" class="tt-clear-selection" id="tt-clear-selection">Clear all</button>
+          </div>
+          <div class="tt-selected-slots" id="tt-selected-slots"></div>
+        </div>
+        <div class="tt-free-slots-wrap" id="tt-free-slots-wrap" hidden>
+          <p class="tt-free-slots-label">Quick pick — mutual free slots:</p>
+          <div class="tt-free-slots" id="tt-free-slots"></div>
+        </div>
+      </div>
+      <div class="tt-form-row">
+        <label for="tt-room">Room</label>
+        <input id="tt-room" name="room" type="text" placeholder="e.g. Room 204" />
+      </div>
+      <div class="tt-form-row">
+        <label for="tt-day">Day</label>
+        <select id="tt-day" name="day_of_week" required>
+          <option value="monday">Monday</option>
+          <option value="tuesday">Tuesday</option>
+          <option value="wednesday">Wednesday</option>
+          <option value="thursday">Thursday</option>
+          <option value="friday">Friday</option>
+          <option value="saturday">Saturday</option>
+        </select>
+      </div>
+      <div class="tt-form-grid">
+        <div class="tt-form-row">
+          <label for="tt-start">Start time</label>
+          <select id="tt-start" name="start_time" required>
+            {% for t in hourly_starts | default(['08:00','09:00','10:00','11:00','12:00','13:00']) %}
+            <option value="{{ t }}">{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="tt-form-row">
+          <label for="tt-end">End time</label>
+          <select id="tt-end" name="end_time" required>
+            {% for t in hourly_ends | default(['09:00','10:00','11:00','12:00','13:00','14:00']) %}
+            <option value="{{ t }}">{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="tt-modal-actions">
+        <button type="button" class="tt-btn tt-btn-outline tt-modal-close">Cancel</button>
+        <button type="button" class="tt-btn tt-btn-danger tt-btn-delete" style="display:none;">Delete</button>
+        <button type="submit" class="tt-btn tt-btn-primary" id="tt-save-btn">Save Slot</button>
+      </div>
+    </form>
+  </div>
+</div>
