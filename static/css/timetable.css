@@ -131,11 +131,25 @@
 .tt-grid-wrap {
   flex: 1;
   overflow: auto;
-  padding: 16px 20px 24px;
+  padding: 12px 12px 24px;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+.tt-scroll-hint {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--tt-muted);
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  background: #F8FAFC;
+  border-radius: 8px;
 }
 .tt-schedule {
   position: relative;
-  min-width: 640px;
+  min-width: 560px;
 }
 .tt-time-header {
   display: grid;
@@ -151,11 +165,14 @@
 .tt-corner {
   background: #F8FAFC;
   min-height: 44px;
+  position: sticky;
+  left: 0;
+  z-index: 12;
 }
 .tt-time-col {
   background: #F8FAFC;
-  padding: 10px 8px;
-  font-size: 12px;
+  padding: 10px 6px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--tt-muted);
   text-align: center;
@@ -163,6 +180,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 1.25;
+}
+.tt-time-full { display: none; }
+.tt-time-short { display: inline; }
+@media (min-width: 768px) {
+  .tt-time-col { font-size: 12px; padding: 10px 8px; }
+  .tt-time-full { display: inline; }
+  .tt-time-short { display: none; }
 }
 .tt-time-col.is-current {
   background: var(--tt-red-soft);
@@ -185,11 +210,15 @@
 .tt-day-row.is-today .tt-day-label { background: #FFF5F5; }
 .tt-day-label {
   background: #fff;
-  padding: 12px 10px;
+  padding: 12px 8px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   justify-content: center;
+  position: sticky;
+  left: 0;
+  z-index: 8;
+  box-shadow: 2px 0 6px rgba(15, 23, 42, 0.06);
 }
 .tt-day-row.is-today .tt-day-name { color: var(--tt-red); font-weight: 700; }
 .tt-day-name { font-size: 13px; font-weight: 600; color: var(--tt-text); }
@@ -401,11 +430,204 @@
   .tt-header { padding: 20px 28px; }
   .tt-filters, .tt-grid-wrap { padding-left: 28px; padding-right: 28px; }
   .tt-admin-class-bar { padding: 16px 28px; }
+  .tt-schedule { min-width: 640px; }
+  .tt-day-label { padding: 12px 10px; }
+}
+
+/* ── Mobile: day-tab + vertical hour list ── */
+.tt-mobile-day-tabs {
+  display: none;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 0 12px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.tt-mobile-day-tabs::-webkit-scrollbar { display: none; }
+
+.tt-day-tab {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+  min-width: 52px;
+  border: 1px solid var(--tt-border);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tt-muted);
+}
+.tt-day-tab.active {
+  background: var(--blue, #2563EB);
+  color: #fff;
+  border-color: var(--blue, #2563EB);
+}
+.tt-day-tab.is-today:not(.active) {
+  border-color: var(--tt-red);
+  color: var(--tt-red);
+}
+.tt-day-tab-pill {
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--tt-red);
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+.tt-day-tab.active .tt-day-tab-pill {
+  background: rgba(255,255,255,0.25);
+}
+
+.tt-is-mobile .tt-mobile-day-tabs { display: flex; }
+.tt-is-mobile .tt-schedule { min-width: 0; }
+.tt-is-mobile .tt-time-header { display: none; }
+.tt-is-mobile .tt-grid-wrap {
+  overflow-x: visible;
+  padding: 8px 12px max(24px, env(safe-area-inset-bottom));
+}
+
+.tt-mobile-day-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--tt-text);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tt-mobile-row {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--tt-border);
+  align-items: stretch;
+}
+.tt-mobile-row.is-current-hour {
+  background: #FFFBFB;
+  margin: 0 -12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border-bottom-color: transparent;
+}
+.tt-mobile-time {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+.tt-mobile-time-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tt-muted);
+  line-height: 1.3;
+}
+.tt-mobile-now {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--tt-red);
+  background: var(--tt-red-soft);
+  padding: 2px 8px;
+  border-radius: 10px;
+  width: fit-content;
+}
+.tt-mobile-cell { min-width: 0; }
+.tt-mobile-cell .tt-card {
+  width: 100%;
+  min-height: 72px;
+}
+.tt-mobile-free {
+  display: flex;
+  align-items: center;
+  min-height: 72px;
+  font-size: 13px;
+  color: #CBD5E1;
+  padding-left: 4px;
+}
+
+@media (max-width: 639px) {
+  .tt-header {
+    padding: 12px 14px;
+    padding-top: max(12px, env(safe-area-inset-top));
+    gap: 8px;
+  }
+  .tt-header-title {
+    font-size: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tt-header-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .tt-filters {
+    padding: 10px 12px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .tt-class-select {
+    width: 100%;
+    min-width: 0;
+  }
+  .tt-legend {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .tt-legend::-webkit-scrollbar { display: none; }
+  .tt-toggle-details {
+    align-self: flex-end;
+    width: 44px;
+    height: 44px;
+  }
+  .tt-search-wrap { padding: 0 12px 10px; }
+  .tt-admin-class-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+  }
+  .tt-admin-class-bar .tt-class-select { width: 100%; }
+  .tt-sync-hint { font-size: 11px; }
+  .tt-flash { margin: 10px 12px 0; }
+  .tt-form-grid { grid-template-columns: 1fr; }
+  .tt-modal-actions {
+    flex-direction: column;
+  }
+  .tt-btn-danger { flex: 1; width: 100%; }
+  .tt-card-subject { font-size: 14px; }
+  .tt-card-teacher { font-size: 12px; }
+  .tt-card-meta { font-size: 11px; }
+  .parent-tt-selector { padding: 10px 12px 0; }
+}
+
+@media (max-width: 380px) {
+  .tt-mobile-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .tt-mobile-time {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
 }
 
 /* Flush layout inside app shell */
 .main-content--flush .page-body--timetable { padding: 0; }
-.timetable-page .main-content--flush { padding: 0; }
+.timetable-page .main-content--flush {
+  padding: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+.timetable-page .tt-app {
+  min-height: calc(100dvh - 0px);
+}
 .parent-tt-selector {
   padding: 12px 20px 0;
   border-bottom: 1px solid var(--tt-border, #E8ECF1);

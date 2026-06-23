@@ -1,5 +1,5 @@
 /**
- * Weekly timetable — fixed 8 AM–2 PM horizontal grid, admin edit.
+ * Weekly timetable — fixed 8 AM–2 PM grid; mobile day view + tablet scroll.
  */
 (function () {
   'use strict';
@@ -9,6 +9,11 @@
     monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday',
     thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday',
   };
+  const DAY_SHORT = {
+    monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed',
+    thursday: 'Thu', friday: 'Fri', saturday: 'Sat',
+  };
+  const MOBILE_MQ = window.matchMedia('(max-width: 639px)');
 
   function parseTime(t) {
     if (!t) return 0;
@@ -34,6 +39,20 @@
     return new Date().getDate();
   }
 
+  function isMobile() {
+    return MOBILE_MQ.matches;
+  }
+
+  function shortTimeLabel(range) {
+    function h12(t) {
+      const p = t.split(':');
+      const h = parseInt(p[0], 10);
+      const suffix = h < 12 ? 'AM' : 'PM';
+      return `${h % 12 || 12}${suffix}`;
+    }
+    return `${h12(range.start)}–${h12(range.end)}`;
+  }
+
   function slotMatchesSearch(slot, q) {
     if (!q) return true;
     const hay = [slot.subject_name, slot.teacher_name, slot.room, slot.class_label].join(' ').toLowerCase();
@@ -57,9 +76,16 @@
     return { col: colStart, span: colEnd - colStart + 1 };
   }
 
+  function slotInRange(slot, range) {
+    const start = parseTime(slot.start_time);
+    const end = parseTime(slot.end_time);
+    const rs = parseTime(range.start);
+    const re = parseTime(range.end);
+    return start < re && end > rs;
+  }
+
   function isCurrentHourColumn(range) {
-    const now = new Date();
-    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const nowMins = new Date().getHours() * 60 + new Date().getMinutes();
     return nowMins >= parseTime(range.start) && nowMins < parseTime(range.end);
   }
 
@@ -72,8 +98,6 @@
     const adminMode = root.dataset.adminMode === 'true';
     const selectedClassDefault = root.dataset.selectedClass || '';
     const classOptions = JSON.parse(root.dataset.classes || '[]');
-    const subjects = JSON.parse(root.dataset.subjects || '[]');
-    const teachers = JSON.parse(root.dataset.teachers || '[]');
     const colors = JSON.parse(root.dataset.colors || '[]');
     const apiAdd = root.dataset.apiAdd || '';
     const apiUpdate = root.dataset.apiUpdate || '';
@@ -84,8 +108,10 @@
     let detailsVisible = true;
     let editingId = null;
     let selectedColor = colors[0] ? colors[0].id : 'blue';
+    let selectedMobileDay = todayKey();
 
     const els = {
+      schedule: root.querySelector('.tt-schedule'),
       timeHeader: root.querySelector('.tt-time-header'),
       body: root.querySelector('.tt-body'),
       nowLine: root.querySelector('.tt-now-line'),
@@ -94,7 +120,9 @@
       searchInput: root.querySelector('.tt-search-input'),
       modal: root.querySelector('.tt-modal-overlay'),
       form: root.querySelector('.tt-modal-form'),
-      schedule: root.querySelector('.tt-schedule'),
+      mobileTabs: root.querySelector('.tt-mobile-day-tabs'),
+      scrollHint: root.querySelector('.tt-scroll-hint'),
+      gridWrap: root.querySelector('.tt-grid-wrap'),
     };
 
     const colCount = timeRanges.length;
@@ -105,6 +133,13 @@
         if (!slotMatchesSearch(s, searchQuery)) return false;
         return true;
       });
+    }
+
+    function gridColumns() {
+      if (isMobile()) return '';
+      const dayW = window.innerWidth < 768 ? '64px' : '88px';
+      const colW = window.innerWidth < 768 ? 'minmax(72px, 1fr)' : 'minmax(88px, 1fr)';
+      return `${dayW} repeat(${colCount}, ${colW})`;
     }
 
     function renderLegend() {
@@ -131,17 +166,90 @@
         `</div></article>`;
     }
 
-    function renderGrid() {
-      if (!els.timeHeader || !els.body) return;
+    function bindCardClicks() {
+      els.body.querySelectorAll('.tt-card-clickable').forEach(function (card) {
+        card.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openModal(card.dataset.id);
+        });
+      });
+    }
+
+    function renderMobileDayTabs() {
+      if (!els.mobileTabs) return;
+      const today = todayKey();
+      els.mobileTabs.innerHTML = DAYS.map(function (day) {
+        const isToday = day === today;
+        const isActive = day === selectedMobileDay;
+        return `<button type="button" class="tt-day-tab${isActive ? ' active' : ''}${isToday ? ' is-today' : ''}" data-day="${day}" role="tab" aria-selected="${isActive}">` +
+          `<span class="tt-day-tab-name">${DAY_SHORT[day]}</span>` +
+          (isToday ? `<span class="tt-day-tab-pill">${todayDateNum()}</span>` : '') +
+          `</button>`;
+      }).join('');
+
+      els.mobileTabs.querySelectorAll('.tt-day-tab').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          selectedMobileDay = btn.dataset.day;
+          renderSchedule();
+        });
+      });
+    }
+
+    function renderMobile() {
+      root.classList.add('tt-is-mobile');
+      if (els.timeHeader) els.timeHeader.innerHTML = '';
+      renderMobileDayTabs();
+
+      const list = filteredSlots();
+      const daySlots = list.filter(function (s) { return s.day_of_week === selectedMobileDay; });
+      const isToday = selectedMobileDay === todayKey();
+
+      let html = `<div class="tt-mobile-day${isToday ? ' is-today' : ''}">`;
+      html += `<div class="tt-mobile-day-title">${DAY_LABELS[selectedMobileDay]}`;
+      if (isToday) html += ` <span class="tt-day-date-pill">${todayDateNum()}</span>`;
+      html += `</div>`;
+
+      if (!slots.length) {
+        html += `<div class="tt-empty-state"><i class="ti ti-calendar-off"></i><p>No timetable slots yet.${canEdit ? ' Tap + to assign a class.' : ''}</p></div>`;
+      } else {
+        timeRanges.forEach(function (range) {
+          const slot = daySlots.find(function (s) { return slotInRange(s, range); });
+          const current = isToday && isCurrentHourColumn(range);
+          html += `<div class="tt-mobile-row${current ? ' is-current-hour' : ''}${slot ? ' has-slot' : ''}">`;
+          html += `<div class="tt-mobile-time"><span class="tt-mobile-time-label">${range.label}</span>`;
+          if (current) html += `<span class="tt-mobile-now">Now</span>`;
+          html += `</div>`;
+          html += `<div class="tt-mobile-cell">`;
+          if (slot) {
+            html += renderCard(slot, !detailsVisible);
+          } else {
+            html += `<span class="tt-mobile-free">Free period</span>`;
+          }
+          html += `</div></div>`;
+        });
+      }
+      html += `</div>`;
+
+      els.body.innerHTML = html;
+      bindCardClicks();
+      if (els.nowLine) els.nowLine.classList.remove('visible');
+    }
+
+    function renderDesktopGrid() {
+      root.classList.remove('tt-is-mobile');
+      if (els.mobileTabs) els.mobileTabs.innerHTML = '';
 
       const list = filteredSlots();
       const today = todayKey();
-      const gridCols = `100px repeat(${colCount}, minmax(90px, 1fr))`;
+      const gridCols = gridColumns();
 
       let headerHtml = `<div class="tt-corner" role="columnheader"></div>`;
       timeRanges.forEach(function (r) {
         const current = isCurrentHourColumn(r);
-        headerHtml += `<div class="tt-time-col${current ? ' is-current' : ''}" role="columnheader">${r.label}</div>`;
+        const label = window.innerWidth < 768
+          ? `<span class="tt-time-short">${shortTimeLabel(r)}</span><span class="tt-time-full">${r.label}</span>`
+          : r.label;
+        headerHtml += `<div class="tt-time-col${current ? ' is-current' : ''}" role="columnheader">${label}</div>`;
       });
       els.timeHeader.style.gridTemplateColumns = gridCols;
       els.timeHeader.innerHTML = headerHtml;
@@ -151,10 +259,11 @@
         const isToday = day === today;
         const daySlots = list.filter(function (s) { return s.day_of_week === day; });
         const placed = {};
+        const dayLabel = window.innerWidth < 768 ? DAY_SHORT[day] : DAY_LABELS[day];
 
         bodyHtml += `<div class="tt-day-row${isToday ? ' is-today' : ''}" role="row" data-day="${day}" style="grid-template-columns:${gridCols}">`;
         bodyHtml += `<div class="tt-day-label" role="rowheader">`;
-        bodyHtml += `<span class="tt-day-name">${DAY_LABELS[day]}</span>`;
+        bodyHtml += `<span class="tt-day-name" title="${DAY_LABELS[day]}">${dayLabel}</span>`;
         if (isToday) {
           bodyHtml += `<span class="tt-day-date-pill">${todayDateNum()}</span>`;
           bodyHtml += `<i class="ti ti-check tt-day-check" aria-hidden="true"></i>`;
@@ -172,7 +281,6 @@
           if (slot) {
             const p = slotPlacement(slot, timeRanges);
             placed[slot.id] = true;
-            const compact = detailsVisible ? '' : ' compact';
             const span = p.span > 1 ? ` style="grid-column: span ${p.span}"` : '';
             bodyHtml += `<div class="tt-cell tt-cell-filled"${span}>`;
             bodyHtml += renderCard(slot, !detailsVisible);
@@ -191,19 +299,24 @@
       }
 
       els.body.innerHTML = bodyHtml;
-
-      els.body.querySelectorAll('.tt-card-clickable').forEach(function (card) {
-        card.addEventListener('click', function (e) {
-          e.stopPropagation();
-          openModal(card.dataset.id);
-        });
-      });
-
+      bindCardClicks();
       positionNowLine();
     }
 
+    function renderSchedule() {
+      if (isMobile()) renderMobile();
+      else renderDesktopGrid();
+      updateScrollHint();
+    }
+
+    function updateScrollHint() {
+      if (!els.scrollHint) return;
+      const show = !isMobile() && window.innerWidth < 1024;
+      els.scrollHint.style.display = show ? 'flex' : 'none';
+    }
+
     function positionNowLine() {
-      if (!els.nowLine || !els.schedule) return;
+      if (!els.nowLine || !els.schedule || isMobile()) return;
       const today = todayKey();
       const row = els.body.querySelector(`.tt-day-row[data-day="${today}"]`);
       if (!row) {
@@ -241,7 +354,7 @@
       els.nowLine.classList.add('visible');
     }
 
-    function openModal(id, preset) {
+    function openModal(id) {
       if (!canEdit || !els.modal) return;
       editingId = id || null;
       selectedColor = colors[0] ? colors[0].id : 'blue';
@@ -257,9 +370,9 @@
         els.form.subject_id.value = slot ? (slot.subject_id || '') : '';
         els.form.class_id.value = slot ? (slot.class_id || selectedClassDefault) : selectedClassDefault;
         els.form.room.value = slot ? (slot.room || '') : '';
-        els.form.day_of_week.value = preset ? preset.day : (slot ? slot.day_of_week : 'monday');
-        els.form.start_time.value = preset ? preset.start : (slot ? slot.start_time : '08:00');
-        els.form.end_time.value = preset ? preset.end : (slot ? slot.end_time : '09:00');
+        els.form.day_of_week.value = slot ? slot.day_of_week : (isMobile() ? selectedMobileDay : 'monday');
+        els.form.start_time.value = slot ? slot.start_time : '08:00';
+        els.form.end_time.value = slot ? slot.end_time : '09:00';
       }
 
       renderColorSwatches();
@@ -333,6 +446,15 @@
         });
     }
 
+    let resizeTimer;
+    function onResize() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        renderSchedule();
+        positionNowLine();
+      }, 150);
+    }
+
     root.querySelector('.tt-menu-btn')?.addEventListener('click', function () {
       document.querySelector('.sidebar-toggle')?.click();
     });
@@ -344,7 +466,7 @@
 
     els.searchInput?.addEventListener('input', function () {
       searchQuery = els.searchInput.value.trim();
-      renderGrid();
+      renderSchedule();
     });
 
     root.querySelector('.tt-add-btn')?.addEventListener('click', function () { openModal(null); });
@@ -352,7 +474,7 @@
     root.querySelector('.tt-toggle-details')?.addEventListener('click', function () {
       detailsVisible = !detailsVisible;
       this.classList.toggle('active', detailsVisible);
-      renderGrid();
+      renderSchedule();
     });
 
     const classFilter = root.querySelector('.tt-class-filter');
@@ -360,7 +482,7 @@
       if (classOptions.length <= 1) classFilter.style.display = 'none';
       classFilter.addEventListener('change', function () {
         selectedClass = classFilter.value;
-        renderGrid();
+        renderSchedule();
       });
     }
 
@@ -371,9 +493,15 @@
     root.querySelector('.tt-btn-delete')?.addEventListener('click', deleteSlot);
     els.form?.addEventListener('submit', submitForm);
 
+    if (typeof MOBILE_MQ.addEventListener === 'function') {
+      MOBILE_MQ.addEventListener('change', onResize);
+    } else if (typeof MOBILE_MQ.addListener === 'function') {
+      MOBILE_MQ.addListener(onResize);
+    }
+
     renderLegend();
-    renderGrid();
-    window.addEventListener('resize', positionNowLine);
+    renderSchedule();
+    window.addEventListener('resize', onResize);
     setInterval(positionNowLine, 60000);
   }
 
