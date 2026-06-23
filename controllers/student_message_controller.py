@@ -12,6 +12,14 @@ from models.student_message_model import (
     mark_student_message_notifications_read,
     get_staff_message_notifications,
 )
+from models.parent_message_model import (
+    get_messages_for_admin as get_parent_messages_for_admin,
+    get_message_by_id as get_parent_message_by_id,
+    reply_to_message as reply_to_parent_message,
+    mark_parent_message_notifications_read,
+    get_staff_parent_notifications,
+    parent_child_label,
+)
 
 student_message_bp = Blueprint("student_messages", __name__)
 
@@ -56,3 +64,33 @@ def admin_inbox():
         "page_title": "Student Messages",
     })
     return render_template("messages/admin_student_inbox.html", **ctx)
+
+
+@student_message_bp.route("/parents", methods=["GET", "POST"])
+@school_admin_required
+def admin_parent_inbox():
+    school_id = session["school_id"]
+    user_id = session["user_id"]
+
+    if request.method == "POST":
+        message_id = request.form.get("message_id", "").strip()
+        reply_text = request.form.get("reply", "").strip()
+        msg = get_parent_message_by_id(message_id, school_id) if message_id else None
+        if not msg:
+            flash("Message not found.", "error")
+        elif reply_to_parent_message(message_id, school_id, reply_text, user_id):
+            flash("Reply sent to parent.", "success")
+            return redirect(url_for("student_messages.admin_parent_inbox"))
+        else:
+            flash("Could not send reply.", "error")
+
+    mark_parent_message_notifications_read(user_id, school_id)
+
+    ctx = _admin_context("parent_messages")
+    ctx.update({
+        "messages_list": get_parent_messages_for_admin(school_id),
+        "notifications": get_staff_parent_notifications(user_id, school_id),
+        "parent_child_label": parent_child_label,
+        "page_title": "Parent Messages",
+    })
+    return render_template("messages/admin_parent_inbox.html", **ctx)

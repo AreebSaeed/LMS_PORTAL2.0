@@ -318,35 +318,3 @@ def get_class_timetable(class_id: str, school_id: str):
 def get_announcements(school_id: str, limit=20, role=None):
     from models.announcement_model import list_announcements
     return list_announcements(school_id, limit=limit, role=role)
-
-
-def get_parent_messages(parent_id: str, school_id: str, limit=30):
-    try:
-        return (
-            supabase_admin.table("parent_messages")
-            .select("*")
-            .eq("parent_id", parent_id)
-            .eq("school_id", school_id)
-            .order("created_at", desc=True)
-            .limit(limit)
-            .execute()
-            .data or []
-        )
-    except Exception:
-        return []
-
-
-def send_parent_message(parent_id: str, school_id: str, subject: str, message: str, student_id: str = None):
-    payload = {
-        "parent_id": parent_id,
-        "school_id": school_id,
-        "subject": subject.strip(),
-        "message": message.strip(),
-        "student_id": student_id,
-        "status": "open",
-    }
-    try:
-        result = supabase_admin.table("parent_messages").insert(payload).execute()
-        return result.data[0] if result.data else None
-    except Exception:
-        return None

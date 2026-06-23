@@ -18,8 +18,11 @@ from models.parent_portal_model import (
     get_exam_results_for_students,
     get_announcements,
     get_upcoming_exams,
+)
+from models.parent_message_model import (
     get_parent_messages,
     send_parent_message,
+    parent_child_label,
 )
 from models.timetable_model import (
     fetch_class_timetable,
@@ -451,19 +454,25 @@ def messages():
         subject = request.form.get("subject", "").strip()
         message = request.form.get("message", "").strip()
         student_id = request.form.get("student_id") or None
+
         if not subject or not message:
             flash("Subject and message are required.", "error")
+        elif children and len(children) > 1 and not student_id:
+            flash("Please select which child this message is about.", "error")
         elif student_id and not parent_has_student(parent["id"], student_id):
             abort(403)
-        elif send_parent_message(parent["id"], school_id, subject, message, student_id):
-            flash("Your message has been sent to the school.", "success")
-            return redirect(url_for("parent_portal.messages"))
         else:
-            flash("Could not send message. Please try again.", "error")
+            if children and not student_id and len(children) == 1:
+                student_id = children[0]["id"]
+            if send_parent_message(parent["id"], school_id, subject, message, student_id):
+                flash("Message sent to school admin.", "success")
+                return redirect(url_for("parent_portal.messages"))
+            flash("Could not send message. Ask your school to run the latest database update.", "error")
 
     ctx = _ctx("messages", parent)
     ctx.update({
         "messages_list": get_parent_messages(parent["id"], school_id),
-        "page_title": "Messages & Complaints",
+        "parent_child_label": parent_child_label,
+        "page_title": "Messages",
     })
     return render_template("parent_portal/messages.html", **ctx)

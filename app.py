@@ -17,6 +17,7 @@ from controllers.timetable_controller import timetable_bp
 from controllers.student_message_controller import student_message_bp
 from models.announcement_model import announcements_list_url_for_role
 from models.student_message_model import count_unread_student_message_notifications
+from models.parent_message_model import count_unread_parent_message_notifications
 
 
 def create_app():
@@ -40,13 +41,21 @@ def create_app():
     def inject_staff_message_badge():
         if session.get("user_id") and session.get("school_id"):
             role = session.get("role", "")
-            if role in ("school_admin", "teacher"):
+            if role == "school_admin":
+                uid = session["user_id"]
+                sid = session["school_id"]
+                return {
+                    "unread_student_messages": count_unread_student_message_notifications(uid, sid),
+                    "unread_parent_messages": count_unread_parent_message_notifications(uid, sid),
+                }
+            if role == "teacher":
                 return {
                     "unread_student_messages": count_unread_student_message_notifications(
                         session["user_id"], session["school_id"]
                     ),
+                    "unread_parent_messages": 0,
                 }
-        return {"unread_student_messages": 0}
+        return {"unread_student_messages": 0, "unread_parent_messages": 0}
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
