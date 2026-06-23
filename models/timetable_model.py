@@ -1,5 +1,7 @@
 """Normalize timetable data for the weekly UI and provide slot CRUD."""
 
+import re
+
 from models.supabase_client import supabase_admin
 
 DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
@@ -29,8 +31,19 @@ def _class_label(cls: dict) -> str:
 def _time_str(val) -> str:
     if not val:
         return ""
-    s = str(val)
+    s = str(val).strip()
+    m = re.match(r"(\d{1,2}):(\d{2})", s)
+    if m:
+        return f"{int(m.group(1)):02d}:{m.group(2)}"
     return s[:5] if len(s) >= 5 else s
+
+
+def _time_to_minutes(val) -> int:
+    s = _time_str(val)
+    if not s or ":" not in s:
+        return 0
+    h, m = s.split(":", 1)
+    return int(h) * 60 + int(m)
 
 
 def color_for_subject(subject_name: str) -> str:
@@ -296,6 +309,191 @@ def _find_overlapping_slots(
         return []
 
 
+def _find_teacher_overlapping_slots(
+    school_id: str,
+    teacher_id: str,
+    day_of_week: str,
+    start_time: str,
+    end_time: str,
+    exclude_slot_id: str = None,
+):
+    """Return slots where this teacher is already booked at the same time."""
+    try:
+        q = (
+            supabase_admin.table("teacher_timetable")
+            .select("*")
+            .eq("school_id", school_id)
+            .eq("teacher_id", teacher_id)
+            .eq("day_of_week", day_of_week)
+            .lt("start_time", end_time)
+            .gt("end_time", start_time)
+        )
+        if exclude_slot_id:
+            q = q.neq("id", exclude_slot_id)
+        return q.execute().data or []
+    except Exception:
+        return []
+
+
+def _times_overlap(slot_start: str, slot_end: str, range_start: str, range_end: str) -> bool:
+    s0, s1 = _time_to_minutes(slot_start), _time_to_minutes(slot_end)
+    r0, r1 = _time_to_minutes(range_start), _time_to_minutes(range_end)
+    return s0 < r1 and s1 > r0
+
+
+def _slot_covers_range(row: dict, range_start: str, range_end: str) -> bool:
+    return _times_overlap(
+        row.get("start_time"),
+        row.get("end_time"),
+        range_start,
+        range_end,
+    )
+
+
+def _fetch_raw_slots(school_id: str, teacher_id: str = None, class_id: str = None) -> list:
+    try:
+        q = supabase_admin.table("teacher_timetable").select("*").eq("school_id", school_id)
+        if teacher_id:
+            q = q.eq("teacher_id", teacher_id)
+        if class_id:
+            q = q.eq("class_id", class_id)
+        return q.execute().data or []
+    except Exception:
+        return []
+
+
+def _enrich_conflict_slot(row: dict, school_id: str) -> dict:
+    """Attach class label and subject name for conflict messages."""
+    out = dict(row)
+    if row.get("class_id"):
+        from models.class_model import get_class_by_id
+
+        cls = get_class_by_id(row["class_id"], school_id)
+        if cls:
+            out["class_label"] = _class_label(cls)
+    if row.get("subject_id"):
+        try:
+            sub = (
+                supabase_admin.table("subjects")
+                .select("name")
+                .eq("id", row["subject_id"])
+                .single()
+                .execute()
+                .data
+            )
+            if sub:
+                out["subject_name"] = sub.get("name")
+        except Exception:
+            pass
+    out["start_time"] = _time_str(row.get("start_time"))
+    out["end_time"] = _time_str(row.get("end_time"))
+    return out
+
+
+def get_slot_availability(
+    school_id: str,
+    teacher_id: str,
+    class_id: str,
+    exclude_slot_id: str = None,
+) -> dict:
+    """Build a weekly grid showing teacher/class busy times and mutual free slots."""
+    ranges = build_time_ranges()
+    teacher_rows = [
+        r for r in _fetch_raw_slots(school_id, teacher_id=teacher_id)
+        if not exclude_slot_id or r.get("id") != exclude_slot_id
+    ]
+    class_rows = [
+        r for r in _fetch_raw_slots(school_id, class_id=class_id)
+        if not exclude_slot_id or r.get("id") != exclude_slot_id
+    ]
+
+    class_ids = {r["class_id"] for r in teacher_rows if r.get("class_id")}
+    teacher_ids = {r["teacher_id"] for r in class_rows if r.get("teacher_id")}
+    class_map = {}
+    teacher_map = {}
+    if class_ids:
+        classes = (
+            supabase_admin.table("classes")
+            .select("id, name, grade, section")
+            .in_("id", list(class_ids))
+            .execute()
+            .data or []
+        )
+        class_map = {c["id"]: c for c in classes}
+    if teacher_ids:
+        teachers = (
+            supabase_admin.table("teachers")
+            .select("id, full_name")
+            .in_("id", list(teacher_ids))
+            .execute()
+            .data or []
+        )
+        teacher_map = {t["id"]: t["full_name"] for t in teachers}
+
+    cells = []
+    free_slots = []
+    for day in DAYS:
+        for r in ranges:
+            rs, re = r["start"], r["end"]
+            teacher_hit = next(
+                (
+                    row for row in teacher_rows
+                    if row.get("day_of_week", "").lower() == day
+                    and _slot_covers_range(row, rs, re)
+                ),
+                None,
+            )
+            class_hit = next(
+                (
+                    row for row in class_rows
+                    if row.get("day_of_week", "").lower() == day
+                    and _slot_covers_range(row, rs, re)
+                ),
+                None,
+            )
+            if teacher_hit and class_hit:
+                same_slot = teacher_hit.get("id") == class_hit.get("id")
+                status = "class_busy" if same_slot else "both_busy"
+            elif class_hit:
+                status = "class_busy"
+            elif teacher_hit:
+                status = "teacher_busy"
+            else:
+                status = "free"
+                free_slots.append({
+                    "day_of_week": day,
+                    "day_label": DAY_LABELS[day],
+                    "start_time": rs,
+                    "end_time": re,
+                    "label": f"{DAY_LABELS[day][:3]} {r['label']}",
+                })
+
+            teacher_label = ""
+            if teacher_hit and teacher_hit.get("class_id"):
+                teacher_label = _class_label(class_map.get(teacher_hit["class_id"], {}))
+
+            class_slot_teacher = ""
+            if class_hit and class_hit.get("teacher_id"):
+                class_slot_teacher = teacher_map.get(class_hit["teacher_id"], "")
+
+            cells.append({
+                "day_of_week": day,
+                "day_label": DAY_LABELS[day],
+                "start_time": rs,
+                "end_time": re,
+                "time_label": r["label"],
+                "status": status,
+                "teacher_class": teacher_label,
+                "class_slot_teacher": class_slot_teacher,
+            })
+
+    return {
+        "cells": cells,
+        "free_slots": free_slots,
+        "free_count": len(free_slots),
+    }
+
+
 def admin_add_slot(school_id: str, data: dict):
     teacher_id = data.get("teacher_id")
     class_id = data.get("class_id")
@@ -306,11 +504,17 @@ def admin_add_slot(school_id: str, data: dict):
     if not teacher_id or not class_id:
         return None, "Teacher and class are required.", None
 
+    teacher_conflicts = _find_teacher_overlapping_slots(
+        school_id, teacher_id, day_of_week, start_time, end_time
+    )
+    if teacher_conflicts:
+        return None, "teacher_conflict", _enrich_conflict_slot(teacher_conflicts[0], school_id)
+
     conflicts = _find_overlapping_slots(
         school_id, class_id, day_of_week, start_time, end_time
     )
     if conflicts and not allow_replace:
-        return None, "conflict", conflicts[0]
+        return None, "conflict", _enrich_conflict_slot(conflicts[0], school_id)
     if conflicts and allow_replace:
         for row in conflicts:
             (
@@ -327,6 +531,65 @@ def admin_add_slot(school_id: str, data: dict):
     return None, "Could not add slot.", None
 
 
+def admin_add_slots_bulk(school_id: str, data: dict) -> dict:
+    """Create multiple slots with the same teacher, class, subject, and room."""
+    teacher_id = data.get("teacher_id")
+    class_id = data.get("class_id")
+    subject_id = data.get("subject_id")
+    room = (data.get("room") or "").strip() or None
+    slot_list = data.get("slots") or []
+
+    if not teacher_id or not class_id or not subject_id:
+        return {"created": [], "failed": [{"error": "missing_fields", "message": "Teacher, class, and subject are required."}]}
+    if not slot_list:
+        return {"created": [], "failed": [{"error": "no_slots", "message": "Select at least one time slot."}]}
+
+    created = []
+    failed = []
+    for item in slot_list:
+        day = (item.get("day_of_week") or "").lower()
+        start = item.get("start_time")
+        end = item.get("end_time")
+        if not day or not start or not end:
+            failed.append({**item, "error": "invalid_slot", "message": "Invalid day or time."})
+            continue
+
+        slot_data = {
+            "teacher_id": teacher_id,
+            "class_id": class_id,
+            "subject_id": subject_id,
+            "room": room,
+            "day_of_week": day,
+            "start_time": start,
+            "end_time": end,
+        }
+        slot, err, conflict = admin_add_slot(school_id, slot_data)
+        if slot:
+            created.append(slot)
+            continue
+
+        msg = "Could not add slot."
+        if err == "teacher_conflict" and conflict:
+            c = conflict
+            cls = c.get("class_label") or "another class"
+            day_l = (c.get("day_of_week") or day).title()
+            st = str(c.get("start_time", start))[:5]
+            et = str(c.get("end_time", end))[:5]
+            msg = f"Teacher busy on {day_l} {st}–{et} ({cls})."
+        elif err == "conflict":
+            msg = "Class already has a slot at this time."
+
+        failed.append({
+            "day_of_week": day,
+            "start_time": start,
+            "end_time": end,
+            "error": err or "failed",
+            "message": msg,
+        })
+
+    return {"created": created, "failed": failed}
+
+
 def admin_update_slot(slot_id: str, school_id: str, data: dict):
     payload = {
         "teacher_id": data.get("teacher_id"),
@@ -338,6 +601,17 @@ def admin_update_slot(slot_id: str, school_id: str, data: dict):
         "room": (data.get("room") or "").strip() or None,
     }
     allow_replace = bool(data.get("allow_replace"))
+    teacher_conflicts = _find_teacher_overlapping_slots(
+        school_id,
+        payload["teacher_id"],
+        payload["day_of_week"],
+        payload["start_time"],
+        payload["end_time"],
+        exclude_slot_id=slot_id,
+    )
+    if teacher_conflicts:
+        return None, "teacher_conflict", _enrich_conflict_slot(teacher_conflicts[0], school_id)
+
     conflicts = _find_overlapping_slots(
         school_id,
         payload["class_id"],
@@ -347,7 +621,7 @@ def admin_update_slot(slot_id: str, school_id: str, data: dict):
         exclude_slot_id=slot_id,
     )
     if conflicts and not allow_replace:
-        return None, "conflict", conflicts[0]
+        return None, "conflict", _enrich_conflict_slot(conflicts[0], school_id)
     if conflicts and allow_replace:
         for row in conflicts:
             (

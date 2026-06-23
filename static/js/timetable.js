@@ -89,14 +89,19 @@
     const selectedClassDefault = root.dataset.selectedClass || '';
     const classOptions = JSON.parse(root.dataset.classes || '[]');
     const apiAdd = root.dataset.apiAdd || '';
+    const apiAddBulk = root.dataset.apiAddBulk || '';
     const apiUpdate = root.dataset.apiUpdate || '';
     const apiDelete = root.dataset.apiDelete || '';
+    const apiAvailability = root.dataset.apiAvailability || '';
 
     let selectedClass = adminMode ? selectedClassDefault : '';
     let searchQuery = '';
     let detailsVisible = true;
     let editingId = null;
     let selectedMobileDay = todayKey();
+    let availabilityData = null;
+    let availabilityTimer = null;
+    let selectedSlots = [];
 
     const els = {
       timeHeader: root.querySelector('.tt-time-header'),
@@ -107,6 +112,17 @@
       form: root.querySelector('.tt-modal-form'),
       mobileTabs: root.querySelector('.tt-mobile-day-tabs'),
       scrollHint: root.querySelector('.tt-scroll-hint'),
+      availPanel: root.querySelector('#tt-availability-panel'),
+      availGrid: root.querySelector('#tt-availability-grid'),
+      availSummary: root.querySelector('#tt-availability-summary'),
+      freeSlotsWrap: root.querySelector('#tt-free-slots-wrap'),
+      freeSlots: root.querySelector('#tt-free-slots'),
+      selectedWrap: root.querySelector('#tt-selected-slots-wrap'),
+      selectedList: root.querySelector('#tt-selected-slots'),
+      selectedLabel: root.querySelector('#tt-selected-slots-label'),
+      clearSelection: root.querySelector('#tt-clear-selection'),
+      availHint: root.querySelector('#tt-avail-hint'),
+      saveBtn: root.querySelector('#tt-save-btn'),
     };
 
     const colCount = timeRanges.length;
@@ -287,6 +303,7 @@
       if (deleteBtn) deleteBtn.style.display = editingId ? 'block' : 'none';
 
       const slot = editingId ? slots.find(function (s) { return s.id === editingId; }) : null;
+      selectedSlots = [];
       if (els.form) {
         if (els.form.teacher_id) els.form.teacher_id.value = slot ? (slot.teacher_id || '') : '';
         els.form.subject_id.value = slot ? (slot.subject_id || '') : '';
@@ -296,13 +313,298 @@
         els.form.start_time.value = slot ? slot.start_time : '08:00';
         els.form.end_time.value = slot ? slot.end_time : '09:00';
       }
+      if (slot) {
+        selectedSlots = [{
+          day_of_week: slot.day_of_week,
+          start_time: slot.start_time,
+          end_time: slot.end_time,
+          label: DAY_LABELS[slot.day_of_week] + ' ' + slot.start_time + '–' + slot.end_time,
+        }];
+      }
+
+      if (els.availHint) els.availHint.hidden = !!editingId;
+      updateSaveButton();
+      renderSelectedSlots();
 
       els.modal.classList.add('open');
+      scheduleAvailabilityLoad();
     }
 
     function closeModal() {
       if (els.modal) els.modal.classList.remove('open');
       editingId = null;
+      availabilityData = null;
+      selectedSlots = [];
+    }
+
+    function slotKey(s) {
+      return (s.day_of_week || '') + '|' + (s.start_time || '') + '|' + (s.end_time || '');
+    }
+
+    function isSlotSelected(day, start, end) {
+      const key = slotKey({ day_of_week: day, start_time: start, end_time: end });
+      return selectedSlots.some(function (s) { return slotKey(s) === key; });
+    }
+
+    function slotLabel(day, start, end, timeLabel) {
+      if (timeLabel) return DAY_LABELS[day].slice(0, 3) + ' ' + timeLabel;
+      return DAY_LABELS[day].slice(0, 3) + ' ' + start + '–' + end;
+    }
+
+    function toggleSlotSelection(day, start, end, timeLabel) {
+      if (editingId) {
+        applySlotSelection(day, start, end);
+        return;
+      }
+      const key = slotKey({ day_of_week: day, start_time: start, end_time: end });
+      const idx = selectedSlots.findIndex(function (s) { return slotKey(s) === key; });
+      if (idx >= 0) {
+        selectedSlots.splice(idx, 1);
+      } else {
+        selectedSlots.push({
+          day_of_week: day,
+          start_time: start,
+          end_time: end,
+          label: slotLabel(day, start, end, timeLabel),
+        });
+      }
+      if (selectedSlots.length) {
+        const last = selectedSlots[selectedSlots.length - 1];
+        els.form.day_of_week.value = last.day_of_week;
+        els.form.start_time.value = last.start_time;
+        els.form.end_time.value = last.end_time;
+      }
+      renderAvailabilityPanel();
+      renderSelectedSlots();
+      updateSaveButton();
+    }
+
+    function removeSelectedSlot(key) {
+      selectedSlots = selectedSlots.filter(function (s) { return slotKey(s) !== key; });
+      renderAvailabilityPanel();
+      renderSelectedSlots();
+      updateSaveButton();
+    }
+
+    function clearSelectedSlots() {
+      selectedSlots = [];
+      renderAvailabilityPanel();
+      renderSelectedSlots();
+      updateSaveButton();
+    }
+
+    function renderSelectedSlots() {
+      if (!els.selectedWrap || !els.selectedList) return;
+      if (editingId || !selectedSlots.length) {
+        els.selectedWrap.hidden = true;
+        els.selectedList.innerHTML = '';
+        if (els.selectedLabel) els.selectedLabel.textContent = 'Selected slots';
+        return;
+      }
+      els.selectedWrap.hidden = false;
+      if (els.selectedLabel) {
+        els.selectedLabel.textContent = 'Selected slots (' + selectedSlots.length + ')';
+      }
+      els.selectedList.innerHTML = selectedSlots.map(function (s) {
+        const key = slotKey(s);
+        const label = s.label || slotLabel(s.day_of_week, s.start_time, s.end_time);
+        return '<span class="tt-selected-chip">' + label
+          + '<button type="button" data-key="' + key + '" aria-label="Remove ' + label + '">&times;</button></span>';
+      }).join('');
+      els.selectedList.querySelectorAll('button[data-key]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          removeSelectedSlot(btn.dataset.key);
+        });
+      });
+    }
+
+    function updateSaveButton() {
+      if (!els.saveBtn) return;
+      if (editingId) {
+        els.saveBtn.textContent = 'Save Slot';
+        return;
+      }
+      const n = selectedSlots.length;
+      if (n > 1) els.saveBtn.textContent = 'Save ' + n + ' Slots';
+      else els.saveBtn.textContent = 'Save Slot';
+    }
+
+    function currentFormSlot() {
+      if (!els.form) return null;
+      return {
+        day_of_week: els.form.day_of_week.value,
+        start_time: els.form.start_time.value,
+        end_time: els.form.end_time.value,
+      };
+    }
+
+    function applySlotSelection(day, start, end) {
+      if (!els.form) return;
+      els.form.day_of_week.value = day;
+      els.form.start_time.value = start;
+      els.form.end_time.value = end;
+      if (editingId) {
+        selectedSlots = [{
+          day_of_week: day,
+          start_time: start,
+          end_time: end,
+          label: slotLabel(day, start, end),
+        }];
+      }
+      renderAvailabilityPanel();
+      renderSelectedSlots();
+    }
+
+    function scheduleAvailabilityLoad(clearSelection) {
+      clearTimeout(availabilityTimer);
+      if (clearSelection && !editingId) {
+        selectedSlots = [];
+        renderSelectedSlots();
+        updateSaveButton();
+      }
+      availabilityTimer = setTimeout(loadAvailability, 200);
+    }
+
+    function loadAvailability() {
+      if (!adminMode || !apiAvailability || !els.availPanel || !els.form) return;
+      const teacherId = els.form.teacher_id?.value;
+      const classId = els.form.class_id?.value;
+      if (!teacherId || !classId) {
+        els.availPanel.hidden = true;
+        return;
+      }
+
+      els.availPanel.hidden = false;
+      if (els.availGrid) els.availGrid.innerHTML = '<div class="tt-availability-loading">Loading availability…</div>';
+      if (els.availSummary) els.availSummary.textContent = '';
+
+      let url = apiAvailability + '?teacher_id=' + encodeURIComponent(teacherId) + '&class_id=' + encodeURIComponent(classId);
+      if (editingId) url += '&exclude_slot_id=' + encodeURIComponent(editingId);
+
+      fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.success) {
+            if (els.availGrid) els.availGrid.innerHTML = '<div class="tt-availability-loading">Could not load availability.</div>';
+            return;
+          }
+          availabilityData = data;
+          if (!editingId && selectedSlots.length) {
+            const freeKeys = {};
+            (data.free_slots || []).forEach(function (s) {
+              freeKeys[slotKey(s)] = true;
+            });
+            selectedSlots = selectedSlots.filter(function (s) {
+              return freeKeys[slotKey(s)];
+            });
+          }
+          renderAvailabilityPanel();
+          renderSelectedSlots();
+          updateSaveButton();
+        })
+        .catch(function () {
+          if (els.availGrid) els.availGrid.innerHTML = '<div class="tt-availability-loading">Could not load availability.</div>';
+        });
+    }
+
+    function cellStatusClass(status) {
+      if (status === 'free') return 'is-free';
+      if (status === 'class_busy') return 'is-class-busy';
+      if (status === 'teacher_busy') return 'is-teacher-busy';
+      return 'is-both-busy';
+    }
+
+    function renderAvailabilityPanel() {
+      if (!availabilityData || !els.availGrid) return;
+
+      const cells = availabilityData.cells || [];
+      const ranges = [];
+      const days = DAYS.slice();
+
+      cells.forEach(function (c) {
+        if (!ranges.find(function (r) { return r.start === c.start_time && r.end === c.end_time; })) {
+          ranges.push({ start: c.start_time, end: c.end_time, label: c.time_label });
+        }
+      });
+
+      let html = '<div class="tt-avail-corner"></div>';
+      days.forEach(function (day) {
+        const label = DAY_SHORT[day];
+        html += '<div class="tt-avail-day-head">' + label + '</div>';
+      });
+
+      ranges.forEach(function (range) {
+        html += '<div class="tt-avail-time-label">' + shortTimeLabel(range) + '</div>';
+        days.forEach(function (day) {
+          const cell = cells.find(function (c) {
+            return c.day_of_week === day && c.start_time === range.start && c.end_time === range.end;
+          });
+          if (!cell) {
+            html += '<div class="tt-avail-cell"></div>';
+            return;
+          }
+          const cls = cellStatusClass(cell.status);
+          const isSelected = isSlotSelected(day, range.start, range.end);
+          let title = '';
+          if (cell.status === 'teacher_busy') {
+            title = 'Teacher busy' + (cell.teacher_class ? ' (' + cell.teacher_class + ')' : '');
+          } else if (cell.status === 'class_busy') {
+            title = 'Class already has a slot'
+              + (cell.class_slot_teacher ? ' (' + cell.class_slot_teacher + ')' : '');
+          } else if (cell.status === 'both_busy') {
+            title = 'Class busy'
+              + (cell.class_slot_teacher ? ' (' + cell.class_slot_teacher + ')' : '')
+              + ' · Teacher busy'
+              + (cell.teacher_class ? ' (' + cell.teacher_class + ')' : '');
+          } else {
+            title = editingId
+              ? 'Both free — click to select'
+              : 'Both free — click to add or remove from selection';
+          }
+          html += '<div class="tt-avail-cell ' + cls + (isSelected ? ' is-selected' : '') + '"'
+            + ' data-day="' + day + '" data-start="' + range.start + '" data-end="' + range.end + '"'
+            + ' data-free="' + (cell.status === 'free' ? '1' : '0') + '"'
+            + ' title="' + title + '"></div>';
+        });
+      });
+
+      els.availGrid.innerHTML = html;
+
+      if (els.availSummary) {
+        const n = availabilityData.free_count || 0;
+        const sel = selectedSlots.length;
+        let text = n + ' mutual free slot' + (n === 1 ? '' : 's');
+        if (!editingId && sel) text += ' · ' + sel + ' selected';
+        els.availSummary.textContent = text;
+      }
+
+      els.availGrid.querySelectorAll('.tt-avail-cell.is-free').forEach(function (cell) {
+        cell.addEventListener('click', function () {
+          toggleSlotSelection(cell.dataset.day, cell.dataset.start, cell.dataset.end, null);
+        });
+      });
+
+      const freeSlots = availabilityData.free_slots || [];
+      if (els.freeSlotsWrap && els.freeSlots) {
+        if (freeSlots.length) {
+          els.freeSlotsWrap.hidden = false;
+          els.freeSlots.innerHTML = freeSlots.map(function (s) {
+            const isSel = isSlotSelected(s.day_of_week, s.start_time, s.end_time);
+            return '<button type="button" class="tt-free-slot-btn' + (isSel ? ' is-selected' : '') + '"'
+              + ' data-day="' + s.day_of_week + '" data-start="' + s.start_time + '" data-end="' + s.end_time + '"'
+              + ' data-label="' + (s.label || '').replace(/"/g, '&quot;') + '">'
+              + s.label + '</button>';
+          }).join('');
+          els.freeSlots.querySelectorAll('.tt-free-slot-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              toggleSlotSelection(btn.dataset.day, btn.dataset.start, btn.dataset.end, btn.dataset.label);
+            });
+          });
+        } else {
+          els.freeSlotsWrap.hidden = true;
+          els.freeSlots.innerHTML = '';
+        }
+      }
     }
 
     function submitForm(e) {
@@ -310,24 +612,81 @@
       if (!els.form) return;
 
       const fd = new FormData(els.form);
-      const payload = {
+      const base = {
         teacher_id: fd.get('teacher_id'),
         subject_id: fd.get('subject_id'),
         class_id: fd.get('class_id'),
         room: fd.get('room'),
-        day_of_week: fd.get('day_of_week'),
-        start_time: fd.get('start_time'),
-        end_time: fd.get('end_time'),
       };
 
-      if (parseTime(payload.end_time) <= parseTime(payload.start_time)) {
-        alert('End time must be after start time.');
+      if (editingId) {
+        const payload = Object.assign({}, base, {
+          day_of_week: fd.get('day_of_week'),
+          start_time: fd.get('start_time'),
+          end_time: fd.get('end_time'),
+        });
+        if (parseTime(payload.end_time) <= parseTime(payload.start_time)) {
+          alert('End time must be after start time.');
+          return;
+        }
+        saveSingle(payload, apiUpdate.replace('__ID__', editingId));
         return;
       }
 
-      const url = editingId ? apiUpdate.replace('__ID__', editingId) : apiAdd;
+      let slotList = selectedSlots.map(function (s) {
+        return {
+          day_of_week: s.day_of_week,
+          start_time: s.start_time,
+          end_time: s.end_time,
+        };
+      });
+      if (!slotList.length) {
+        slotList = [{
+          day_of_week: fd.get('day_of_week'),
+          start_time: fd.get('start_time'),
+          end_time: fd.get('end_time'),
+        }];
+      }
+
+      for (let i = 0; i < slotList.length; i++) {
+        if (parseTime(slotList[i].end_time) <= parseTime(slotList[i].start_time)) {
+          alert('End time must be after start time for all selected slots.');
+          return;
+        }
+      }
+
+      if (slotList.length > 1 && apiAddBulk) {
+        fetch(apiAddBulk, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify(Object.assign({}, base, { slots: slotList })),
+        })
+          .then(function (r) { return r.json().then(function (b) { return { status: r.status, body: b }; }); })
+          .then(function (resp) {
+            if (resp.body.success) {
+              if (resp.body.failed_count > 0) {
+                alert(
+                  'Created ' + resp.body.created_count + ' slot(s). '
+                  + resp.body.failed_count + ' could not be added.'
+                );
+              }
+              window.location.reload();
+              return;
+            }
+            alert(resp.body.error || 'Could not save slots.');
+            scheduleAvailabilityLoad();
+          })
+          .catch(function () { alert('Could not save. Try again.'); });
+        return;
+      }
+
+      const payload = Object.assign({}, base, slotList[0]);
+      saveSingle(payload, apiAdd);
+    }
+
+    function saveSingle(payload, url) {
       function doSave(allowReplace) {
-        const sendPayload = { ...payload };
+        const sendPayload = Object.assign({}, payload);
         if (allowReplace) sendPayload.allow_replace = true;
         fetch(url, {
           method: 'POST',
@@ -341,7 +700,12 @@
               return;
             }
             if (resp.status === 409 && resp.body.conflict && !allowReplace) {
-              const ok = confirm('A timetable event already exists in this time slot. Replace existing event?');
+              if (resp.body.conflict_type === 'teacher') {
+                alert(resp.body.error || 'This teacher is already booked at that time.');
+                scheduleAvailabilityLoad();
+                return;
+              }
+              const ok = confirm('A timetable event already exists in this time slot for this class. Replace existing event?');
               if (ok) doSave(true);
               return;
             }
@@ -401,6 +765,27 @@
     });
     root.querySelector('.tt-btn-delete')?.addEventListener('click', deleteSlot);
     els.form?.addEventListener('submit', submitForm);
+
+    if (els.form?.teacher_id) {
+      els.form.teacher_id.addEventListener('change', function () {
+        scheduleAvailabilityLoad(true);
+      });
+    }
+    if (els.form?.class_id) {
+      els.form.class_id.addEventListener('change', function () {
+        scheduleAvailabilityLoad(true);
+      });
+    }
+    els.clearSelection?.addEventListener('click', clearSelectedSlots);
+    if (els.form?.day_of_week) {
+      els.form.day_of_week.addEventListener('change', renderAvailabilityPanel);
+    }
+    if (els.form?.start_time) {
+      els.form.start_time.addEventListener('change', renderAvailabilityPanel);
+    }
+    if (els.form?.end_time) {
+      els.form.end_time.addEventListener('change', renderAvailabilityPanel);
+    }
 
     if (typeof MOBILE_MQ.addEventListener === 'function') {
       MOBILE_MQ.addEventListener('change', onResize);

@@ -10,8 +10,10 @@
      data-admin-mode="{{ 'true' if tt_admin_mode else 'false' }}"
      data-selected-class="{{ selected_class_id | default('') }}"
      data-api-add="{{ tt_api_add | default('') }}"
+     data-api-add-bulk="{{ tt_api_add_bulk | default('') }}"
      data-api-update="{{ tt_api_update | default('') }}"
-     data-api-delete="{{ tt_api_delete | default('') }}">
+     data-api-delete="{{ tt_api_delete | default('') }}"
+     data-api-availability="{{ tt_api_availability | default('') }}">
 
   <header class="tt-header">
     <h1 class="tt-header-title">{{ tt_title | default('Class Timetable') }}</h1>
@@ -70,6 +72,30 @@
             {% endfor %}
           </select>
         </div>
+        <div class="tt-availability-panel" id="tt-availability-panel" hidden>
+          <div class="tt-availability-header">
+            <span class="tt-availability-title">Slot availability</span>
+            <span class="tt-availability-summary" id="tt-availability-summary"></span>
+          </div>
+          <div class="tt-availability-legend">
+            <span class="tt-avail-legend-item tt-avail-free"><i></i>Both free</span>
+            <span class="tt-avail-legend-item tt-avail-class"><i></i>Class busy</span>
+            <span class="tt-avail-legend-item tt-avail-teacher"><i></i>Teacher busy</span>
+          </div>
+          <p class="tt-avail-hint" id="tt-avail-hint">Click green cells to select multiple slots</p>
+          <div class="tt-availability-grid" id="tt-availability-grid" aria-label="Weekly availability"></div>
+          <div class="tt-selected-slots-wrap" id="tt-selected-slots-wrap" hidden>
+            <div class="tt-selected-slots-header">
+              <span class="tt-selected-slots-label" id="tt-selected-slots-label">Selected slots</span>
+              <button type="button" class="tt-clear-selection" id="tt-clear-selection">Clear all</button>
+            </div>
+            <div class="tt-selected-slots" id="tt-selected-slots"></div>
+          </div>
+          <div class="tt-free-slots-wrap" id="tt-free-slots-wrap" hidden>
+            <p class="tt-free-slots-label">Quick pick — mutual free slots:</p>
+            <div class="tt-free-slots" id="tt-free-slots"></div>
+          </div>
+        </div>
         <div class="tt-form-row">
           <label for="tt-room">Room</label>
           <input id="tt-room" name="room" type="text" placeholder="e.g. Room 204" />
@@ -106,7 +132,7 @@
         <div class="tt-modal-actions">
           <button type="button" class="tt-btn tt-btn-outline tt-modal-close">Cancel</button>
           <button type="button" class="tt-btn tt-btn-danger tt-btn-delete" style="display:none;">Delete</button>
-          <button type="submit" class="tt-btn tt-btn-primary">Save Slot</button>
+          <button type="submit" class="tt-btn tt-btn-primary" id="tt-save-btn">Save Slot</button>
         </div>
       </form>
     </div>

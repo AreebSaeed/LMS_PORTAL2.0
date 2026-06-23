@@ -8,11 +8,13 @@ from models.timetable_model import (
     build_time_ranges,
     fetch_school_timetable,
     admin_add_slot,
+    admin_add_slots_bulk,
     admin_update_slot,
     admin_delete_slot,
     teachers_for_select,
     classes_for_select,
     subjects_for_select,
+    get_slot_availability,
     HOURLY_START_OPTIONS,
     HOURLY_END_OPTIONS,
     _class_label,
@@ -63,8 +65,10 @@ def index():
         "hourly_starts": HOURLY_START_OPTIONS,
         "hourly_ends": HOURLY_END_OPTIONS,
         "tt_api_add": url_for("timetable.add_slot"),
+        "tt_api_add_bulk": url_for("timetable.add_slots_bulk"),
         "tt_api_update": url_for("timetable.update_slot", slot_id="__ID__"),
         "tt_api_delete": url_for("timetable.delete_slot", slot_id="__ID__"),
+        "tt_api_availability": url_for("timetable.slot_availability"),
     })
     return render_template("timetable/admin.html", **ctx)
 
@@ -87,9 +91,72 @@ def add_slot():
             "success": False,
             "error": "Time slot already has an event for this class. Replace it?",
             "conflict": True,
+            "conflict_type": "class",
+            "conflict_slot": conflict,
+        }), 409
+    if err == "teacher_conflict":
+        c = conflict or {}
+        cls = c.get("class_label") or "another class"
+        day = (c.get("day_of_week") or "").title()
+        st = str(c.get("start_time", ""))[:5]
+        et = str(c.get("end_time", ""))[:5]
+        return jsonify({
+            "success": False,
+            "error": (
+                f"This teacher is already assigned on {day} {st}–{et} "
+                f"({cls}). Choose a free slot below."
+            ),
+            "conflict": True,
+            "conflict_type": "teacher",
             "conflict_slot": conflict,
         }), 409
     return jsonify({"success": False, "error": err or "Could not add slot."}), 500
+
+
+@timetable_bp.route("/slots/bulk", methods=["POST"])
+@school_admin_required
+def add_slots_bulk():
+    school_id = session["school_id"]
+    data = request.get_json(silent=True) or {}
+    required = ["teacher_id", "class_id", "subject_id"]
+    if not all(data.get(k) for k in required):
+        return jsonify({"success": False, "error": "Teacher, class, and subject are required."}), 400
+
+    result = admin_add_slots_bulk(school_id, data)
+    created = result.get("created") or []
+    failed = result.get("failed") or []
+
+    if created:
+        n = len(created)
+        flash(
+            f"Added {n} timetable slot{'s' if n != 1 else ''}. Students in this class will see them automatically.",
+            "success",
+        )
+
+    if not created:
+        msg = failed[0]["message"] if failed else "Could not add slots."
+        return jsonify({"success": False, "error": msg, "failed": failed}), 400
+
+    return jsonify({
+        "success": True,
+        "created_count": len(created),
+        "failed_count": len(failed),
+        "slots": created,
+        "failed": failed,
+    })
+
+
+@timetable_bp.route("/availability")
+@school_admin_required
+def slot_availability():
+    school_id = session["school_id"]
+    teacher_id = request.args.get("teacher_id")
+    class_id = request.args.get("class_id")
+    exclude_slot_id = request.args.get("exclude_slot_id") or None
+    if not teacher_id or not class_id:
+        return jsonify({"success": False, "error": "teacher_id and class_id are required."}), 400
+    data = get_slot_availability(school_id, teacher_id, class_id, exclude_slot_id)
+    return jsonify({"success": True, **data})
 
 
 @timetable_bp.route("/slots/<slot_id>", methods=["POST"])
@@ -106,6 +173,23 @@ def update_slot(slot_id):
             "success": False,
             "error": "Time slot already has an event for this class. Replace it?",
             "conflict": True,
+            "conflict_type": "class",
+            "conflict_slot": conflict,
+        }), 409
+    if err == "teacher_conflict":
+        c = conflict or {}
+        cls = c.get("class_label") or "another class"
+        day = (c.get("day_of_week") or "").title()
+        st = str(c.get("start_time", ""))[:5]
+        et = str(c.get("end_time", ""))[:5]
+        return jsonify({
+            "success": False,
+            "error": (
+                f"This teacher is already assigned on {day} {st}–{et} "
+                f"({cls}). Choose a free slot below."
+            ),
+            "conflict": True,
+            "conflict_type": "teacher",
             "conflict_slot": conflict,
         }), 409
     return jsonify({"success": False, "error": err or "Could not update slot."}), 500
