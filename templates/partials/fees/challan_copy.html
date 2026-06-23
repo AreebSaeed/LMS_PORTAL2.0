@@ -1,0 +1,35 @@
+{# Single challan copy — included 3× in document #}
+<div class="challan-copy">
+  <div class="challan-copy-inner">
+    <h1 class="challan-school">{{ challan.school_name }}</h1>
+    <h2 class="challan-title">{{ challan.billing_title }}</h2>
+    <dl class="challan-meta">
+      <div><dt>Challan No:</dt><dd>{{ challan.challan_number }}</dd></div>
+      <div><dt>Student Name:</dt><dd>{{ challan.student_name }}</dd></div>
+      <div><dt>Class / Section:</dt><dd>{{ challan.class_label }}</dd></div>
+      <div><dt>Due Date:</dt><dd>{{ challan.due_date }}</dd></div>
+    </dl>
+    <table class="challan-table">
+      <thead>
+        <tr><th>Description</th><th>Amount (Rs.)</th></tr>
+      </thead>
+      <tbody>
+        {% for item in challan.line_items %}
+        <tr>
+          <td>{{ item.label }}</td>
+          <td>{{ item.amount_display }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="challan-total-row">
+          <td><strong>Total</strong></td>
+          <td><strong>{{ challan.total_formatted }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="challan-signatures">
+      <span>Cashier Sign: __________</span>
+      <span>Date: __________</span>
+    </div>
+    <p class="challan-copy-label">— {{ copy_label }} —</p>
+  </div>
+</div>

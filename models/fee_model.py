@@ -30,7 +30,8 @@ def _fee_components(row: dict) -> dict:
 
 def calc_total_amount(row: dict) -> float:
     parts = _fee_components(row)
-    subtotal = sum(parts.values())
+    misc = float(row.get("misc_charges") or 0)
+    subtotal = sum(parts.values()) + misc
     discount = float(row.get("discount") or 0)
     fine = float(row.get("fine") or 0)
     return max(subtotal - discount + fine, 0)
@@ -239,6 +240,23 @@ def list_fee_structures(school_id: str):
     return result
 
 
+def get_fee_structure_by_id(structure_id: str, school_id: str):
+    if not structure_id:
+        return None
+    try:
+        result = (
+            supabase_admin.table("fee_structures")
+            .select("*")
+            .eq("id", structure_id)
+            .eq("school_id", school_id)
+            .single()
+            .execute()
+        )
+        return result.data
+    except Exception:
+        return None
+
+
 def get_fee_structure(school_id: str, class_id: str = None):
     try:
         if class_id:
@@ -296,8 +314,81 @@ def save_fee_structure(school_id: str, data: dict, class_id: str = None):
         return None
 
 
+OPTIONAL_FEE_COLUMNS = (
+    "fee_structure_id",
+    "misc_charges",
+    "is_void",
+    "voided_at",
+    "voided_by",
+    "superseded_by_id",
+    "reissued_from_id",
+)
+
+
+def _fee_record_student_id(student: dict) -> str:
+    """Canonical student id for fee_records (students.id after module16 migration)."""
+    return student["id"]
+
+
+def _fee_student_id_candidates(student: dict) -> list:
+    """Try students.id first; fall back to user_id for legacy FK on user_profiles."""
+    ids = [student["id"]]
+    uid = student.get("user_id")
+    if uid and uid not in ids:
+        ids.append(uid)
+    return ids
+
+
+def _friendly_insert_error(err: str) -> str:
+    text = err or ""
+    if "fee_records_student_id_fkey" in text or "user_profiles" in text:
+        return (
+            "student account is not linked for fee records — run "
+            "sql/module16_fee_records_student_fk.sql in Supabase SQL editor"
+        )
+    if "Could not find the" in text and "column" in text:
+        return "database schema is out of date — run sql/module16_fee_records_student_fk.sql"
+    return text[:240] if len(text) > 240 else text
+
+
+def _insert_fee_record(payload: dict):
+    attempt = {k: v for k, v in payload.items() if v is not None}
+    last_err = "Could not save fee record."
+    optional_stripped = False
+    while True:
+        try:
+            result = supabase_admin.table("fee_records").insert(attempt).execute()
+            if result.data:
+                return result.data[0], None
+            return None, "Insert returned no data."
+        except Exception as exc:
+            last_err = str(exc)
+            if not optional_stripped:
+                optional_stripped = True
+                for col in OPTIONAL_FEE_COLUMNS:
+                    attempt.pop(col, None)
+                if len(attempt) < len({k: v for k, v in payload.items() if v is not None}):
+                    continue
+            break
+    return None, last_err
+
+
+def _insert_fee_record_for_student(payload: dict, student: dict):
+    last_err = "Could not save fee record."
+    for sid in _fee_student_id_candidates(student):
+        row, err = _insert_fee_record({**payload, "student_id": sid})
+        if row:
+            return row, None
+        last_err = err or last_err
+        err_text = str(err or "")
+        if "fee_records_student_id_fkey" not in err_text and "user_profiles" not in err_text:
+            break
+    return None, last_err
+
+
 def _next_challan_number(school_id: str, billing_month: date) -> str:
-    prefix = f"CH-{billing_month.strftime('%Y%m')}"
+    year = billing_month.strftime("%Y")
+    prefix = f"FEE-{year}"
     try:
         rows = (
             supabase_admin.table("fee_records")
@@ -339,6 +430,7 @@ def generate_monthly_challans(
     user_id: str,
     include: dict = None,
     due_day: int = 10,
+    structure_id: str = None,
 ):
     include = include or {
         "tuition": True, "transport": True,
@@ -349,9 +441,15 @@ def generate_monthly_challans(
     due_date = date(billing_year, billing_month, min(due_day, last_day)).isoformat()
     billing_month_iso = billing_date.isoformat()
 
-    structure = get_fee_structure(school_id, class_id) or get_fee_structure(school_id, None)
+    structure = None
+    if structure_id:
+        structure = get_fee_structure_by_id(structure_id, school_id)
+        if not structure:
+            return 0, "Selected fee structure not found."
     if not structure:
-        return 0, "No fee structure found. Create a class or school default structure first."
+        structure = get_fee_structure(school_id, class_id) or get_fee_structure(school_id, None)
+    if not structure:
+        return 0, "No fee structure found. Create a fee structure and select it when generating."
 
     students = get_students_for_class(school_id, class_id=class_id)
     if not students:
@@ -364,6 +462,7 @@ def generate_monthly_challans(
             .eq("school_id", school_id)
             .eq("billing_month", billing_month_iso)
             .eq("class_id", class_id)
+            .eq("is_void", False)
             .execute()
             .data or []
         )
@@ -372,9 +471,14 @@ def generate_monthly_challans(
         existing_ids = set()
 
     created = 0
+    skipped_existing = 0
+    failures = []
+
     for student in students:
-        sid = student["id"]
-        if sid in existing_ids or student.get("user_id") in existing_ids:
+        sid = _fee_record_student_id(student)
+        lookup_ids = {sid, student.get("user_id")} - {None}
+        if lookup_ids & existing_ids:
+            skipped_existing += 1
             continue
 
         tuition = float(structure.get("tuition_fee") or 0) if include.get("tuition") else 0
@@ -396,8 +500,8 @@ def generate_monthly_challans(
 
         payload = {
             "school_id": school_id,
-            "student_id": sid,
             "class_id": class_id,
+            "fee_structure_id": structure.get("id"),
             "amount": total,
             "amount_paid": 0,
             "remaining_dues": total,
@@ -406,21 +510,39 @@ def generate_monthly_challans(
             "billing_month": billing_month_iso,
             "challan_number": _next_challan_number(school_id, billing_date),
             "recorded_by": user_id,
+            "is_void": False,
+            "misc_charges": 0,
             **row,
         }
-        try:
-            supabase_admin.table("fee_records").insert(payload).execute()
+        inserted, err = _insert_fee_record_for_student(payload, student)
+        if inserted:
             created += 1
-        except Exception:
-            pass
+            existing_ids.update(lookup_ids)
+        else:
+            name = student.get("full_name") or "Student"
+            failures.append(f"{name}: {_friendly_insert_error(err)}")
 
     if created == 0:
+        if skipped_existing >= len(students):
+            return 0, "All students in this class already have challans for this billing month."
+        if failures:
+            unique = list(dict.fromkeys(failures))
+            hint = unique[0]
+            if len(unique) > 1:
+                hint += f" (+{len(unique) - 1} more)"
+            if any("module16" in f for f in unique):
+                return 0, (
+                    "No challans could be saved. Your database still links fee records to "
+                    "portal logins instead of student profiles. Run "
+                    "sql/module16_fee_records_student_fk.sql in the Supabase SQL editor, then try again."
+                )
+            return 0, f"No challans could be saved. {hint}"
         return 0, "No new challans created (students may already have challans for this month)."
     return created, None
 
 
 def list_fees(school_id: str, status: str = None, class_id: str = None,
-              billing_month: str = None, limit=100):
+              billing_month: str = None, limit=100, include_void: bool = False):
     try:
         q = (
             supabase_admin.table("fee_records")
@@ -429,6 +551,8 @@ def list_fees(school_id: str, status: str = None, class_id: str = None,
             .order("created_at", desc=True)
             .limit(limit)
         )
+        if not include_void:
+            q = q.eq("is_void", False)
         if status:
             q = q.eq("status", status)
         if class_id:
@@ -437,7 +561,25 @@ def list_fees(school_id: str, status: str = None, class_id: str = None,
             q = q.eq("billing_month", billing_month)
         rows = q.execute().data or []
     except Exception:
-        return []
+        if include_void:
+            return []
+        try:
+            q = (
+                supabase_admin.table("fee_records")
+                .select("*")
+                .eq("school_id", school_id)
+                .order("created_at", desc=True)
+                .limit(limit)
+            )
+            if status:
+                q = q.eq("status", status)
+            if class_id:
+                q = q.eq("class_id", class_id)
+            if billing_month:
+                q = q.eq("billing_month", billing_month)
+            rows = q.execute().data or []
+        except Exception:
+            return []
 
     student_ids = {r["student_id"] for r in rows}
     class_ids = {r["class_id"] for r in rows if r.get("class_id")}
@@ -481,16 +623,21 @@ def get_fee_payments(fee_id: str, school_id: str):
         return []
 
 
-def update_fee_adjustments(fee_id: str, school_id: str, discount: float = None, fine: float = None, notes: str = None):
+def update_fee_adjustments(fee_id: str, school_id: str, discount: float = None, fine: float = None,
+                           misc_charges: float = None, notes: str = None):
     fee = get_fee_record(fee_id, school_id)
     if not fee:
         return None, "Fee record not found."
+    if fee.get("is_void"):
+        return None, "This challan has been voided."
 
     payload = {}
     if discount is not None:
         payload["discount"] = max(float(discount), 0)
     if fine is not None:
         payload["fine"] = max(float(fine), 0)
+    if misc_charges is not None:
+        payload["misc_charges"] = max(float(misc_charges), 0)
     if notes is not None:
         payload["notes"] = notes.strip() or None
 
@@ -683,6 +830,107 @@ def send_bulk_reminders(school_id: str, user_id: str, status: str = "overdue"):
         if ok:
             total += 1
     return total
+
+
+def get_class_challan_summary(school_id: str, class_id: str = None, billing_month: str = None):
+    """Counts per class for challan tracking dashboard."""
+    fees = list_fees(school_id, class_id=class_id, billing_month=billing_month, limit=500)
+    by_class = {}
+    for f in fees:
+        cid = f.get("class_id") or "none"
+        label = f.get("class_label") or "Unassigned"
+        if cid not in by_class:
+            by_class[cid] = {"class_id": cid, "label": label, "total": 0, "paid": 0, "pending": 0, "amount_due": 0.0}
+        by_class[cid]["total"] += 1
+        if f.get("status") == "paid":
+            by_class[cid]["paid"] += 1
+        else:
+            by_class[cid]["pending"] += 1
+            by_class[cid]["amount_due"] += float(f.get("balance") or 0)
+    return sorted(by_class.values(), key=lambda x: x["label"])
+
+
+def reissue_challan(fee_id: str, school_id: str, user_id: str, data: dict = None):
+    """Void the current challan and create a new one with updated amounts."""
+    data = data or {}
+    fee = get_fee_record(fee_id, school_id)
+    if not fee:
+        return None, "Challan not found."
+    if fee.get("is_void"):
+        return None, "This challan is already void."
+    if float(fee.get("amount_paid") or 0) > 0:
+        return None, "Cannot reissue a challan that has payments. Adjust the existing challan instead."
+
+    billing_date = date.today()
+    if fee.get("billing_month"):
+        try:
+            billing_date = datetime.strptime(str(fee["billing_month"])[:10], "%Y-%m-%d").date()
+        except ValueError:
+            pass
+
+    discount = float(data.get("discount", fee.get("discount") or 0))
+    fine = float(data.get("fine", fee.get("fine") or 0))
+    misc = float(data.get("misc_charges", fee.get("misc_charges") or 0))
+    due_date = data.get("due_date") or fee.get("due_date")
+    notes = data.get("notes", fee.get("notes"))
+
+    row = {
+        "tuition_fee": fee.get("tuition_fee", 0),
+        "admission_fee": fee.get("admission_fee", 0),
+        "annual_fee": fee.get("annual_fee", 0),
+        "exam_fee": fee.get("exam_fee", 0),
+        "transport_fee": fee.get("transport_fee", 0),
+        "discount": discount,
+        "fine": fine,
+        "misc_charges": misc,
+    }
+    total = calc_total_amount(row)
+
+    try:
+        void_result = (
+            supabase_admin.table("fee_records")
+            .update({
+                "is_void": True,
+                "voided_at": _now_iso(),
+                "voided_by": user_id,
+                "notes": ((fee.get("notes") or "").strip() + " [Voided — reissued]").strip(),
+            })
+            .eq("id", fee_id)
+            .eq("school_id", school_id)
+            .execute()
+        )
+        if not void_result.data:
+            return None, "Could not void the previous challan."
+    except Exception:
+        return None, "Could not void the previous challan."
+
+    new_payload = {
+        "school_id": school_id,
+        "student_id": fee["student_id"],
+        "class_id": fee.get("class_id"),
+        "fee_structure_id": fee.get("fee_structure_id"),
+        "amount": total,
+        "amount_paid": 0,
+        "remaining_dues": total,
+        "status": "pending",
+        "due_date": due_date,
+        "billing_month": fee.get("billing_month"),
+        "challan_number": _next_challan_number(school_id, billing_date),
+        "recorded_by": user_id,
+        "reissued_from_id": fee_id,
+        "is_void": False,
+        "notes": (notes or "").strip() or None,
+        **row,
+    }
+    try:
+        result = supabase_admin.table("fee_records").insert(new_payload).execute()
+        if not result.data:
+            return None, "Could not create reissued challan."
+        new_id = result.data[0]["id"]
+        supabase_admin.table("fee_records").update({"superseded_by_id": new_id}).eq("id", fee_id).execute()
+        return get_fee_record(new_id, school_id), None
+    except Exception:
+        return None, "Could not create reissued challan."
 
 
 def generate_receipt_pdf(school: dict, fee: dict, receipt: dict, student: dict) -> bytes:

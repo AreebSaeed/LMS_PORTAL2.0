@@ -26,5 +26,5 @@
 </div>
 {% endblock %}
 {% block extra_js %}
-  <script src="{{ url_for('static', filename='js/timetable.js') }}"></script>
+  {% include "partials/timetable/scripts.html" %}
 {% endblock %}

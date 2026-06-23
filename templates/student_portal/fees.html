@@ -3,6 +3,7 @@
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/student_portal.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/challan.css') }}" />
 {% endblock %}
 {% block body %}
 <div class="app-layout">
@@ -11,14 +12,42 @@
     <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
     <div class="page-body">
       <div class="stats-grid" style="margin-bottom:24px;">
-        <div class="stat-card yellow"><div class="stat-label">Amount Due</div><div class="stat-value">{{ '%.0f'|format(fee_summary.total_due) }}</div></div>
-        <div class="stat-card green"><div class="stat-label">Total Paid</div><div class="stat-value">{{ '%.0f'|format(fee_summary.total_paid) }}</div></div>
+        <div class="stat-card yellow"><div class="stat-label">Amount Due</div><div class="stat-value">Rs. {{ '%.0f'|format(fee_summary.total_due) }}</div></div>
+        <div class="stat-card green"><div class="stat-label">Total Paid</div><div class="stat-value">Rs. {{ '%.0f'|format(fee_summary.total_paid) }}</div></div>
         <div class="stat-card"><div class="stat-label">Status</div><div class="stat-value"><span class="badge badge-{{ fee_summary.status }}">{{ fee_summary.status|capitalize }}</span></div></div>
       </div>
-      <div class="section-card"><div class="section-body" style="padding:0;"><table class="data-table"><thead><tr><th>Amount</th><th>Paid</th><th>Due Date</th><th>Status</th></tr></thead><tbody>
-        {% for f in fee_summary.records %}<tr><td>{{ f.amount }}</td><td>{{ f.amount_paid or 0 }}</td><td>{{ f.due_date or '—' }}</td><td><span class="badge badge-{{ f.status }}">{{ f.status }}</span></td></tr>
-        {% else %}<tr><td colspan="4" class="empty-state">No fee records found.</td></tr>{% endfor %}
-      </tbody></table></div></div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">My Fee Challans</div></div>
+        <div class="section-body table-card-wrap" style="padding:0;">
+          <table class="data-table">
+            <thead>
+              <tr><th>Challan</th><th>Month</th><th>Total</th><th>Paid</th><th>Balance</th><th>Due Date</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% for f in fee_summary.records %}
+              <tr>
+                <td><strong>{{ f.challan_number or '—' }}</strong></td>
+                <td>{{ f.billing_month[:7] if f.billing_month else '—' }}</td>
+                <td>Rs. {{ '%.0f'|format(f.total_amount) }}</td>
+                <td>Rs. {{ '%.0f'|format(f.amount_paid or 0) }}</td>
+                <td>Rs. {{ '%.0f'|format(f.balance) }}</td>
+                <td>{{ f.due_date or '—' }}</td>
+                <td><span class="badge badge-{{ f.status }}">{{ f.status }}</span></td>
+                <td>
+                  <div class="fee-challan-actions">
+                    <a href="{{ url_for('student_portal.fee_challan', fee_id=f.id) }}" class="action-btn btn-outline btn-sm">View</a>
+                    <a href="{{ url_for('student_portal.fee_challan', fee_id=f.id, format='pdf') }}" class="action-btn btn-primary btn-sm">PDF</a>
+                  </div>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="8" class="empty-state">No fee challans yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </main>
 </div>

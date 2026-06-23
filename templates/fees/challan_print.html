@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Fee Challan — {{ challan.challan_number }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/challan.css') }}" />
+{% endblock %}
+{% block body_class %}challan-print-page{% endblock %}
+{% block body %}
+<div class="challan-page-wrap">
+  {% if challan.is_void %}
+  <div class="challan-void-banner no-print">This challan has been voided and is no longer valid.</div>
+  {% endif %}
+  <div class="challan-actions no-print">
+    {% if back_url %}<a href="{{ back_url }}" class="action-btn btn-outline">Back</a>{% endif %}
+    <button type="button" class="action-btn btn-primary" onclick="window.print()">Print</button>
+    {% if pdf_url %}<a href="{{ pdf_url }}" class="action-btn btn-outline">Download PDF</a>{% endif %}
+  </div>
+  <div class="challan-document{% if challan.is_void %} is-void{% endif %}">
+    <div class="challan-copies">
+      {% for label in challan.copy_labels %}
+        {% set copy_label = label %}
+        {% include "partials/fees/challan_copy.html" %}
+      {% endfor %}
+    </div>
+    <div class="challan-terms">
+      <h3>Terms &amp; Conditions</h3>
+      <ul>
+        {% for term in challan.terms %}
+        <li>{{ term }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% if challan.is_void %}<div class="challan-void-stamp">VOID</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

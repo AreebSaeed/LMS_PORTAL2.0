@@ -17,11 +17,12 @@
       <div class="section-card">
         <div class="section-header"><div class="section-title">Generate Monthly Fee Challans</div></div>
         <div class="section-body">
-          <form method="POST" class="portal-form">
+          <p class="field-hint" style="margin-bottom:16px;">Select a class and fee structure. One challan per student will be created for the billing month.</p>
+          <form method="POST" class="portal-form" id="generate-challan-form">
             <div class="form-grid-2">
               <div class="form-row">
                 <label class="field-label">Class</label>
-                <select class="form-input" name="class_id" required>
+                <select class="form-input" name="class_id" id="gen-class" required>
                   <option value="">Select class</option>
                   {% for c in classes %}
                   <option value="{{ c.id }}">{{ c.name or c.grade }}{% if c.section %} — {{ c.section }}{% endif %}</option>
@@ -29,13 +30,29 @@
                 </select>
               </div>
               <div class="form-row">
-                <label class="field-label">Due Day of Month</label>
-                <input class="form-input" type="number" min="1" max="28" name="due_day" value="10" />
+                <label class="field-label">Fee Structure</label>
+                <select class="form-input" name="fee_structure_id" id="gen-structure" required>
+                  <option value="">Select fee structure</option>
+                  {% for s in structures %}
+                  <option value="{{ s.id }}" data-class-id="{{ s.class_id or '' }}">
+                    {{ s.name or s.class_label }}{% if s.class_id %} ({{ s.class_label }}){% else %} (School default){% endif %}
+                  </option>
+                  {% endfor %}
+                </select>
               </div>
             </div>
             <div class="form-grid-2">
-              <div class="form-row"><label class="field-label">Year</label><input class="form-input" type="number" name="year" value="{{ year }}" required /></div>
-              <div class="form-row"><label class="field-label">Month</label><input class="form-input" type="number" min="1" max="12" name="month" value="{{ month }}" required /></div>
+              <div class="form-row">
+                <label class="field-label">Due Day of Month</label>
+                <input class="form-input" type="number" min="1" max="28" name="due_day" value="10" />
+              </div>
+              <div class="form-row">
+                <label class="field-label">Billing Period</label>
+                <div style="display:flex;gap:8px;">
+                  <input class="form-input" type="number" name="year" value="{{ year }}" required style="flex:1;" />
+                  <input class="form-input" type="number" min="1" max="12" name="month" value="{{ month }}" required style="flex:1;" />
+                </div>
+              </div>
             </div>
             <div class="form-row"><label class="field-label">Include in challan</label>
               <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:8px;">
@@ -43,7 +60,7 @@
                 <label><input type="checkbox" name="include_transport" checked /> Transport</label>
                 <label><input type="checkbox" name="include_admission" /> Admission</label>
                 <label><input type="checkbox" name="include_annual" /> Annual</label>
-                <label><input type="checkbox" name="include_exam" /> Exam</label>
+                <label><input type="checkbox" name="include_exam" checked /> Exam</label>
               </div>
             </div>
             <button type="submit" class="action-btn btn-primary">Generate Challans</button>
@@ -53,4 +70,21 @@
     </div>
   </main>
 </div>
+<script>
+(function () {
+  var classSel = document.getElementById('gen-class');
+  var structSel = document.getElementById('gen-structure');
+  if (!classSel || !structSel) return;
+  var allOpts = Array.from(structSel.querySelectorAll('option[data-class-id]'));
+  function filterStructures() {
+    var cid = classSel.value;
+    structSel.innerHTML = '<option value="">Select fee structure</option>';
+    allOpts.forEach(function (opt) {
+      var ocid = opt.getAttribute('data-class-id');
+      if (!cid || !ocid || ocid === cid) structSel.appendChild(opt.cloneNode(true));
+    });
+  }
+  classSel.addEventListener('change', filterStructures);
+})();
+</script>
 {% endblock %}

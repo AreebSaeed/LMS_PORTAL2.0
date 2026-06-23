@@ -73,7 +73,7 @@ def get_students_for_class(school_id: str, class_id: str = None, class_grade: st
     try:
         q = (
             supabase_admin.table("students")
-            .select("id, full_name, admission_number, roll_number, class_grade, section, class_id, photo_url")
+            .select("id, full_name, admission_number, roll_number, class_grade, section, class_id, photo_url, user_id")
             .eq("school_id", school_id)
             .eq("status", "active")
             .order("full_name")

@@ -157,6 +157,8 @@ def get_fees_for_students(students: list, school_id: str):
 
     enriched = []
     for row in rows:
+        if row.get("is_void"):
+            continue
         fee = enrich_fee_record(row, smap, cmap)
         student = _match_student_for_fee(students, row["student_id"])
         if student:

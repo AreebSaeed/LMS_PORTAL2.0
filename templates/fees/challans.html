@@ -3,6 +3,7 @@
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/fees.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/challan.css') }}" />
 {% endblock %}
 {% block body %}
 <div class="app-layout">
@@ -10,6 +11,23 @@
   <main class="main-content">
     <div class="topbar"><div class="topbar-title">{{ page_title }}</div><div class="topbar-date" id="current-date"></div></div>
     <div class="page-body">
+      {% if class_summary %}
+      <div class="challan-class-summary">
+        <a href="{{ url_for('fees.challans', billing_month=filter_month) }}" class="challan-class-card{% if not filter_class %} active{% endif %}">
+          <div class="cc-label">All Classes</div>
+          <div class="cc-stats">{{ fees|length }} shown{% if not filter_class %} · {{ class_summary|length }} classes{% endif %}</div>
+        </a>
+        {% for c in class_summary %}
+        {% if c.class_id != 'none' %}
+        <a href="{{ url_for('fees.challans', class_id=c.class_id, billing_month=filter_month) }}" class="challan-class-card{% if filter_class == c.class_id %} active{% endif %}">
+          <div class="cc-label">{{ c.label }}</div>
+          <div class="cc-stats">{{ c.total }} challans · {{ c.pending }} pending · Rs. {{ '%.0f'|format(c.amount_due) }} due</div>
+        </a>
+        {% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
+
       <div class="section-card">
         <div class="section-header"><div class="section-title">Filter Challans</div></div>
         <div class="section-body">
@@ -36,34 +54,48 @@
               </div>
               <div class="form-row">
                 <label class="field-label">Billing Month</label>
-                <input class="form-input" type="date" name="billing_month" value="{{ filter_month or '' }}" />
+                <input class="form-input" type="month" name="billing_month" value="{{ filter_month[:7] if filter_month else '' }}" />
               </div>
             </div>
-            <button type="submit" class="action-btn btn-outline">Apply</button>
+            <button type="submit" class="action-btn btn-outline">Apply Filters</button>
           </form>
         </div>
       </div>
 
       <div class="section-card">
-        <div class="section-body" style="padding:0;">
+        <div class="section-header">
+          <div class="section-title">Challans by Class</div>
+          <a href="{{ url_for('fees.generate') }}" class="action-btn btn-primary btn-sm">+ Generate</a>
+        </div>
+        <div class="section-body table-card-wrap" style="padding:0;">
           <table class="data-table">
-            <thead><tr><th>Challan</th><th>Student</th><th>Class</th><th>Month</th><th>Total</th><th>Paid</th><th>Balance</th><th>Due</th><th>Status</th><th></th></tr></thead>
+            <thead>
+              <tr>
+                <th>Challan</th><th>Student</th><th>Class</th><th>Month</th>
+                <th>Total</th><th>Balance</th><th>Due</th><th>Status</th><th>Actions</th>
+              </tr>
+            </thead>
             <tbody>
               {% for f in fees %}
               <tr>
-                <td>{{ f.challan_number or '—' }}</td>
+                <td><strong>{{ f.challan_number or '—' }}</strong></td>
                 <td>{{ f.student_name }}</td>
                 <td>{{ f.class_label }}</td>
                 <td>{{ f.billing_month[:7] if f.billing_month else '—' }}</td>
-                <td>{{ '%.2f'|format(f.total_amount) }}</td>
-                <td>{{ '%.2f'|format(f.amount_paid or 0) }}</td>
-                <td>{{ '%.2f'|format(f.balance) }}</td>
+                <td>{{ '%.0f'|format(f.total_amount) }}</td>
+                <td>{{ '%.0f'|format(f.balance) }}</td>
                 <td>{{ f.due_date or '—' }}</td>
                 <td><span class="badge badge-{{ f.status }}">{{ f.status }}</span></td>
-                <td><a href="{{ url_for('fees.challan_detail', fee_id=f.id) }}" class="action-btn btn-outline btn-sm">Manage</a></td>
+                <td>
+                  <div class="fee-challan-actions">
+                    <a href="{{ url_for('fees.challan_view', fee_id=f.id) }}" class="action-btn btn-outline btn-sm">View</a>
+                    <a href="{{ url_for('fees.challan_pdf', fee_id=f.id) }}" class="action-btn btn-outline btn-sm">PDF</a>
+                    <a href="{{ url_for('fees.challan_detail', fee_id=f.id) }}" class="action-btn btn-primary btn-sm">Manage</a>
+                  </div>
+                </td>
               </tr>
               {% else %}
-              <tr><td colspan="10" class="empty-state">No challans found.</td></tr>
+              <tr><td colspan="9" class="empty-state">No challans found. Generate challans for a class to get started.</td></tr>
               {% endfor %}
             </tbody>
           </table>

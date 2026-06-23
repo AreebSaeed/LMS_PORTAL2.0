@@ -1,7 +1,7 @@
 from datetime import date
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
-    session, flash, abort,
+    session, flash, abort, Response,
 )
 from controllers.auth_helpers import student_required
 from models.school_model import get_school_by_id
@@ -238,6 +238,44 @@ def fees():
     ctx = _ctx("fees", student)
     ctx.update({"fee_summary": summary, "page_title": "Fee Status"})
     return render_template("student_portal/fees.html", **ctx)
+
+
+@student_portal_bp.route("/fees/<fee_id>/challan")
+@student_required
+def fee_challan(fee_id):
+    student = _load_student()
+    school_id = session["school_id"]
+    from models.fee_model import get_fee_record
+    from models.challan_service import build_challan_context, generate_challan_pdf
+
+    fee = get_fee_record(fee_id, school_id)
+    if not fee:
+        abort(404)
+    sid = student["id"]
+    if fee.get("student_id") not in (sid, student.get("user_id")):
+        abort(403)
+    if fee.get("is_void"):
+        flash("This challan is no longer valid.", "error")
+        return redirect(url_for("student_portal.fees"))
+
+    school = get_school_by_id(school_id)
+    if request.args.get("format") == "pdf":
+        pdf_bytes = generate_challan_pdf(school, fee, student)
+        num = fee.get("challan_number") or fee_id[:8]
+        return Response(
+            pdf_bytes,
+            mimetype="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=challan_{num}.pdf"},
+        )
+
+    ctx = _ctx("fees", student)
+    ctx.update({
+        "challan": build_challan_context(school, fee, student),
+        "back_url": url_for("student_portal.fees"),
+        "pdf_url": url_for("student_portal.fee_challan", fee_id=fee_id, format="pdf"),
+        "page_title": f"Challan {fee.get('challan_number', '')}",
+    })
+    return render_template("fees/challan_print.html", **ctx)
 
 
 @student_portal_bp.route("/announcements")

@@ -3,6 +3,7 @@
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/fees.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/challan.css') }}" />
 {% endblock %}
 {% block body %}
 <div class="app-layout">
@@ -17,33 +18,39 @@
       <div class="section-card">
         <div class="section-header">
           <div class="section-title">{{ fee.student_name }} — {{ fee.challan_number or 'Challan' }}</div>
-          <a href="{{ url_for('fees.challans') }}" class="action-btn btn-outline">Back</a>
+          <div class="fee-challan-actions">
+            <a href="{{ url_for('fees.challans', class_id=fee.class_id) }}" class="action-btn btn-outline">Back</a>
+            <a href="{{ url_for('fees.challan_view', fee_id=fee.id) }}" class="action-btn btn-outline">View Challan</a>
+            <a href="{{ url_for('fees.challan_pdf', fee_id=fee.id) }}" class="action-btn btn-primary">Download PDF</a>
+          </div>
         </div>
         <div class="section-body">
           <p class="field-hint">Class: {{ fee.class_label }} · Billing: {{ fee.billing_month[:7] if fee.billing_month else '—' }} · Due: {{ fee.due_date or '—' }}</p>
+          {% if fee.reissued_from_id %}<p class="field-hint">Reissued challan (previous voided).</p>{% endif %}
           <div class="fee-breakdown">
             <div class="fee-breakdown-item"><div class="label">Tuition</div><div class="value">{{ fee.tuition_fee }}</div></div>
+            <div class="fee-breakdown-item"><div class="label">Exam</div><div class="value">{{ fee.exam_fee }}</div></div>
             <div class="fee-breakdown-item"><div class="label">Transport</div><div class="value">{{ fee.transport_fee }}</div></div>
             <div class="fee-breakdown-item"><div class="label">Admission</div><div class="value">{{ fee.admission_fee }}</div></div>
             <div class="fee-breakdown-item"><div class="label">Annual</div><div class="value">{{ fee.annual_fee }}</div></div>
-            <div class="fee-breakdown-item"><div class="label">Exam</div><div class="value">{{ fee.exam_fee }}</div></div>
+            <div class="fee-breakdown-item"><div class="label">Misc.</div><div class="value">{{ fee.misc_charges or 0 }}</div></div>
             <div class="fee-breakdown-item"><div class="label">Discount</div><div class="value">-{{ fee.discount or 0 }}</div></div>
-            <div class="fee-breakdown-item"><div class="label">Fine</div><div class="value">+{{ fee.fine or 0 }}</div></div>
-            <div class="fee-breakdown-item"><div class="label">Total</div><div class="value">{{ '%.2f'|format(fee.total_amount) }}</div></div>
-            <div class="fee-breakdown-item"><div class="label">Paid</div><div class="value">{{ '%.2f'|format(fee.amount_paid or 0) }}</div></div>
-            <div class="fee-breakdown-item"><div class="label">Remaining</div><div class="value">{{ '%.2f'|format(fee.balance) }}</div></div>
+            <div class="fee-breakdown-item"><div class="label">Late Fee</div><div class="value">+{{ fee.fine or 0 }}</div></div>
+            <div class="fee-breakdown-item"><div class="label">Total</div><div class="value">{{ '%.0f'|format(fee.total_amount) }}</div></div>
+            <div class="fee-breakdown-item"><div class="label">Paid</div><div class="value">{{ '%.0f'|format(fee.amount_paid or 0) }}</div></div>
+            <div class="fee-breakdown-item"><div class="label">Remaining</div><div class="value">{{ '%.0f'|format(fee.balance) }}</div></div>
           </div>
           <p><span class="badge badge-{{ fee.status }}">{{ fee.status }}</span></p>
           {% if receipt %}
           <div class="fee-actions-bar">
             <a href="{{ url_for('fees.receipt', fee_id=fee.id) }}" class="action-btn btn-outline">View Receipt</a>
-            <a href="{{ url_for('fees.receipt_pdf', fee_id=fee.id) }}" class="action-btn btn-primary">Download PDF</a>
+            <a href="{{ url_for('fees.receipt_pdf', fee_id=fee.id) }}" class="action-btn btn-outline">Receipt PDF</a>
           </div>
           {% endif %}
         </div>
       </div>
 
-      {% if fee.balance > 0 %}
+      {% if fee.balance > 0 and not fee.is_void %}
       <div class="section-card">
         <div class="section-header"><div class="section-title">Record Payment</div></div>
         <div class="section-body">
@@ -66,7 +73,7 @@
 
       <div class="form-grid-2">
         <div class="section-card">
-          <div class="section-header"><div class="section-title">Discount / Scholarship</div></div>
+          <div class="section-header"><div class="section-title">Discount</div></div>
           <div class="section-body">
             <form method="POST" class="portal-form">
               <input type="hidden" name="action" value="discount" />
@@ -76,23 +83,54 @@
           </div>
         </div>
         <div class="section-card">
-          <div class="section-header"><div class="section-title">Late Fee / Fine</div></div>
+          <div class="section-header"><div class="section-title">Late Fee</div></div>
           <div class="section-body">
             <form method="POST" class="portal-form">
               <input type="hidden" name="action" value="fine" />
-              <div class="form-row"><label class="field-label">Fine Amount</label><input class="form-input" type="number" step="0.01" min="0" name="fine" value="{{ fee.fine or 0 }}" /></div>
-              <button type="submit" class="action-btn btn-outline">Apply Fine</button>
+              <div class="form-row"><label class="field-label">Late Fee Amount</label><input class="form-input" type="number" step="0.01" min="0" name="fine" value="{{ fee.fine or 0 }}" /></div>
+              <button type="submit" class="action-btn btn-outline">Apply Late Fee</button>
             </form>
           </div>
         </div>
       </div>
 
       <div class="section-card">
-        <div class="section-header"><div class="section-title">Send Reminder to Parent</div></div>
+        <div class="section-header"><div class="section-title">Misc. Charges</div></div>
+        <div class="section-body">
+          <form method="POST" class="portal-form">
+            <input type="hidden" name="action" value="misc" />
+            <div class="form-row"><label class="field-label">Misc. Charges</label><input class="form-input" type="number" step="0.01" min="0" name="misc_charges" value="{{ fee.misc_charges or 0 }}" /></div>
+            <button type="submit" class="action-btn btn-outline">Update Misc. Charges</button>
+          </form>
+        </div>
+      </div>
+
+      {% if (fee.amount_paid or 0)|float == 0 %}
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Reissue Challan</div></div>
+        <div class="section-body">
+          <p class="field-hint" style="margin-bottom:12px;">Update amounts and reissue. The current challan will be voided and a new challan number issued.</p>
+          <form method="POST" class="portal-form">
+            <input type="hidden" name="action" value="reissue" />
+            <div class="form-grid-2">
+              <div class="form-row"><label class="field-label">Discount</label><input class="form-input" type="number" step="0.01" min="0" name="discount" value="{{ fee.discount or 0 }}" /></div>
+              <div class="form-row"><label class="field-label">Late Fee</label><input class="form-input" type="number" step="0.01" min="0" name="fine" value="{{ fee.fine or 0 }}" /></div>
+              <div class="form-row"><label class="field-label">Misc. Charges</label><input class="form-input" type="number" step="0.01" min="0" name="misc_charges" value="{{ fee.misc_charges or 0 }}" /></div>
+              <div class="form-row"><label class="field-label">Due Date</label><input class="form-input" type="date" name="due_date" value="{{ fee.due_date or '' }}" /></div>
+            </div>
+            <div class="form-row"><label class="field-label">Notes</label><input class="form-input" type="text" name="notes" value="{{ fee.notes or '' }}" /></div>
+            <button type="submit" class="action-btn btn-primary" onclick="return confirm('Reissue this challan? The current challan will be voided.');">Reissue Challan</button>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Send Reminder</div></div>
         <div class="section-body">
           <form method="POST" class="portal-form">
             <input type="hidden" name="action" value="remind" />
-            <div class="form-row"><label class="field-label">Custom Message (optional)</label><textarea class="form-input" name="message" rows="2" placeholder="Leave blank for default reminder…"></textarea></div>
+            <div class="form-row"><label class="field-label">Custom Message (optional)</label><textarea class="form-input" name="message" rows="2"></textarea></div>
             <button type="submit" class="action-btn btn-outline">Send Reminder</button>
           </form>
         </div>
@@ -101,7 +139,7 @@
 
       <div class="section-card">
         <div class="section-header"><div class="section-title">Payment History</div></div>
-        <div class="section-body" style="padding:0;">
+        <div class="section-body table-card-wrap" style="padding:0;">
           <table class="data-table">
             <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Receipt</th><th>Notes</th></tr></thead>
             <tbody>

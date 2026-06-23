@@ -166,6 +166,50 @@ def fees():
     return render_template("parent_portal/fees.html", **ctx)
 
 
+@parent_portal_bp.route("/fees/<fee_id>/challan")
+@parent_required
+def fee_challan(fee_id):
+    parent = _load_parent()
+    school_id = session["school_id"]
+    children = get_linked_students(parent["id"])
+    from models.fee_model import get_fee_record
+    from models.challan_service import build_challan_context, generate_challan_pdf
+
+    fee = get_fee_record(fee_id, school_id)
+    if not fee:
+        abort(404)
+
+    student = None
+    for s in children:
+        if s["id"] == fee.get("student_id") or s.get("user_id") == fee.get("student_id"):
+            student = get_student_by_id(s["id"], school_id)
+            break
+    if not student:
+        abort(403)
+    if fee.get("is_void"):
+        flash("This challan is no longer valid.", "error")
+        return redirect(url_for("parent_portal.fees"))
+
+    school = get_school_by_id(school_id)
+    if request.args.get("format") == "pdf":
+        pdf_bytes = generate_challan_pdf(school, fee, student)
+        num = fee.get("challan_number") or fee_id[:8]
+        return Response(
+            pdf_bytes,
+            mimetype="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=challan_{num}.pdf"},
+        )
+
+    ctx = _ctx("fees", parent)
+    ctx.update({
+        "challan": build_challan_context(school, fee, student),
+        "back_url": url_for("parent_portal.fees"),
+        "pdf_url": url_for("parent_portal.fee_challan", fee_id=fee_id, format="pdf"),
+        "page_title": f"Challan {fee.get('challan_number', '')}",
+    })
+    return render_template("fees/challan_print.html", **ctx)
+
+
 @parent_portal_bp.route("/fees/<fee_id>/receipt")
 @parent_required
 def fee_receipt(fee_id):

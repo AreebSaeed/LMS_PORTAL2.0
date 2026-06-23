@@ -258,22 +258,29 @@ def get_fee_summary(student: dict, school_id: str):
     except Exception:
         return {"total_due": 0, "total_paid": 0, "records": [], "status": "clear"}
 
+    from models.fee_model import enrich_fee_record
+
     total_due = 0.0
     total_paid = 0.0
     has_pending = False
+    enriched = []
     for row in rows:
-        amount = float(row.get("amount") or 0)
-        paid = float(row.get("amount_paid") or 0)
+        if row.get("is_void"):
+            continue
+        fee = enrich_fee_record(row)
+        enriched.append(fee)
+        amount = float(fee.get("total_amount") or fee.get("amount") or 0)
+        paid = float(fee.get("amount_paid") or 0)
         total_paid += paid
-        balance = max(amount - paid, 0)
-        if row.get("status") in ("pending", "partial", "overdue") and balance > 0:
+        balance = fee.get("balance") or max(amount - paid, 0)
+        if fee.get("status") in ("pending", "partial", "overdue") and balance > 0:
             total_due += balance
             has_pending = True
 
     return {
         "total_due": total_due,
         "total_paid": total_paid,
-        "records": rows,
+        "records": enriched,
         "status": "pending" if has_pending else "clear",
     }
 

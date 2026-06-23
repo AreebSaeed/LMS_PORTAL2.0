@@ -22,7 +22,10 @@ from models.fee_model import (
     send_fee_reminder,
     send_bulk_reminders,
     generate_receipt_pdf,
+    reissue_challan,
+    get_class_challan_summary,
 )
+from models.challan_service import build_challan_context, generate_challan_pdf
 
 fee_bp = Blueprint("fees", __name__)
 
@@ -106,9 +109,11 @@ def generate():
                 "exam": request.form.get("include_exam") == "on",
             }
             due_day = int(request.form.get("due_day") or 10)
+            structure_id = request.form.get("fee_structure_id") or None
             count, err = generate_monthly_challans(
                 school_id, class_id, year, month,
                 session["user_id"], include, due_day,
+                structure_id=structure_id,
             )
             if err:
                 flash(err, "error")
@@ -120,6 +125,7 @@ def generate():
     ctx.update({
         "year": today.year,
         "month": today.month,
+        "structures": list_fee_structures(school_id),
         "page_title": "Generate Challans",
     })
     return render_template("fees/generate.html", **ctx)
@@ -132,13 +138,16 @@ def challans():
     status = request.args.get("status") or None
     class_id = request.args.get("class_id") or None
     billing_month = request.args.get("billing_month") or None
+    if billing_month and len(billing_month) == 7:
+        billing_month = f"{billing_month}-01"
 
     ctx = _ctx("challans")
     ctx.update({
         "fees": list_fees(school_id, status=status, class_id=class_id, billing_month=billing_month, limit=200),
+        "class_summary": get_class_challan_summary(school_id, billing_month=billing_month),
         "filter_status": status,
         "filter_class": class_id,
-        "filter_month": billing_month,
+        "filter_month": request.args.get("billing_month") or billing_month,
         "page_title": "Fee Challans",
     })
     return render_template("fees/challans.html", **ctx)
@@ -180,6 +189,27 @@ def challan_detail(fee_id):
             else:
                 flash("Late fee / fine updated.", "success")
                 return redirect(url_for("fees.challan_detail", fee_id=fee_id))
+        elif action == "misc":
+            misc = request.form.get("misc_charges", 0)
+            _, err = update_fee_adjustments(fee_id, school_id, misc_charges=misc)
+            if err:
+                flash(err, "error")
+            else:
+                flash("Misc. charges updated.", "success")
+                return redirect(url_for("fees.challan_detail", fee_id=fee_id))
+        elif action == "reissue":
+            new_fee, err = reissue_challan(fee_id, school_id, session["user_id"], {
+                "discount": request.form.get("discount"),
+                "fine": request.form.get("fine"),
+                "misc_charges": request.form.get("misc_charges"),
+                "due_date": request.form.get("due_date"),
+                "notes": request.form.get("notes"),
+            })
+            if err:
+                flash(err, "error")
+            else:
+                flash(f"Challan reissued as {new_fee.get('challan_number')}. Previous challan voided.", "success")
+                return redirect(url_for("fees.challan_detail", fee_id=new_fee["id"]))
         elif action == "remind":
             ok, msg = send_fee_reminder(fee_id, school_id, session["user_id"], request.form.get("message"))
             flash(msg, "success" if ok else "error")
@@ -227,6 +257,41 @@ def remind_all():
     count = send_bulk_reminders(session["school_id"], session["user_id"], status="overdue")
     flash(f"Sent reminders for {count} overdue fee record(s).", "success" if count else "info")
     return redirect(request.referrer or url_for("fees.index"))
+
+
+@fee_bp.route("/challans/<fee_id>/view")
+@fee_staff_required
+def challan_view(fee_id):
+    school_id = session["school_id"]
+    fee = get_fee_record(fee_id, school_id)
+    if not fee:
+        abort(404)
+    school = get_school_by_id(school_id)
+    student = fee.get("student") or {}
+    ctx = {
+        "challan": build_challan_context(school, fee, student),
+        "back_url": url_for("fees.challan_detail", fee_id=fee_id),
+        "pdf_url": url_for("fees.challan_pdf", fee_id=fee_id),
+    }
+    return render_template("fees/challan_print.html", **ctx)
+
+
+@fee_bp.route("/challans/<fee_id>/pdf")
+@fee_staff_required
+def challan_pdf(fee_id):
+    school_id = session["school_id"]
+    fee = get_fee_record(fee_id, school_id)
+    if not fee:
+        abort(404)
+    school = get_school_by_id(school_id)
+    student = fee.get("student") or {}
+    pdf_bytes = generate_challan_pdf(school, fee, student)
+    num = fee.get("challan_number") or fee_id[:8]
+    return Response(
+        pdf_bytes,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=challan_{num}.pdf"},
+    )
 
 
 @fee_bp.route("/receipt/<fee_id>")
