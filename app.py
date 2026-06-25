@@ -1,28 +1,31 @@
 from flask import Flask, redirect, url_for, session, jsonify
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
+import traceback
+from typing import Optional
+
 from config import Config
-from controllers.auth_controller import auth_bp
-from controllers.dashboard_controller import dashboard_bp
-from controllers.student_controller import student_bp
-from controllers.parent_controller import parent_bp
-from controllers.teacher_controller import teacher_bp
-from controllers.attendance_controller import attendance_bp
-from controllers.parent_portal_controller import parent_portal_bp
-from controllers.teacher_portal_controller import teacher_portal_bp
-from controllers.student_portal_controller import student_portal_bp
-from controllers.exam_controller import exam_bp
-from controllers.fee_controller import fee_bp
-from controllers.announcement_controller import announcement_bp
-from controllers.class_controller import class_bp
-from controllers.timetable_controller import timetable_bp
-from controllers.student_message_controller import student_message_bp
-from models.announcement_model import announcements_list_url_for_role
-from models.student_message_model import count_unread_student_message_notifications
-from models.parent_message_model import count_unread_parent_message_notifications
+
+_startup_error: Optional[str] = None
 
 
 def create_app():
+    from controllers.auth_controller import auth_bp
+    from controllers.dashboard_controller import dashboard_bp
+    from controllers.student_controller import student_bp
+    from controllers.parent_controller import parent_bp
+    from controllers.teacher_controller import teacher_bp
+    from controllers.attendance_controller import attendance_bp
+    from controllers.parent_portal_controller import parent_portal_bp
+    from controllers.teacher_portal_controller import teacher_portal_bp
+    from controllers.student_portal_controller import student_portal_bp
+    from controllers.exam_controller import exam_bp
+    from controllers.fee_controller import fee_bp
+    from controllers.announcement_controller import announcement_bp
+    from controllers.class_controller import class_bp
+    from controllers.timetable_controller import timetable_bp
+    from controllers.student_message_controller import student_message_bp
+
     app = Flask(__name__)
     app.config.from_object(Config)
 
@@ -36,6 +39,7 @@ def create_app():
 
     @app.context_processor
     def inject_announcement_bell():
+        from models.announcement_model import announcements_list_url_for_role
         if session.get("user_id") and session.get("school_id"):
             role = session.get("role", "")
             return {
@@ -49,22 +53,27 @@ def create_app():
 
     @app.context_processor
     def inject_staff_message_badge():
+        from models.student_message_model import count_unread_student_message_notifications
+        from models.parent_message_model import count_unread_parent_message_notifications
         if session.get("user_id") and session.get("school_id"):
             role = session.get("role", "")
-            if role == "school_admin":
-                uid = session["user_id"]
-                sid = session["school_id"]
-                return {
-                    "unread_student_messages": count_unread_student_message_notifications(uid, sid),
-                    "unread_parent_messages": count_unread_parent_message_notifications(uid, sid),
-                }
-            if role == "teacher":
-                return {
-                    "unread_student_messages": count_unread_student_message_notifications(
-                        session["user_id"], session["school_id"]
-                    ),
-                    "unread_parent_messages": 0,
-                }
+            try:
+                if role == "school_admin":
+                    uid = session["user_id"]
+                    sid = session["school_id"]
+                    return {
+                        "unread_student_messages": count_unread_student_message_notifications(uid, sid),
+                        "unread_parent_messages": count_unread_parent_message_notifications(uid, sid),
+                    }
+                if role == "teacher":
+                    return {
+                        "unread_student_messages": count_unread_student_message_notifications(
+                            session["user_id"], session["school_id"]
+                        ),
+                        "unread_parent_messages": 0,
+                    }
+            except Exception:
+                pass
         return {"unread_student_messages": 0, "unread_parent_messages": 0}
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
@@ -89,17 +98,55 @@ def create_app():
 
     @app.route("/api/health")
     def health():
-        from models.supabase_client import config_error
+        from models.supabase_client import config_error, supabase_admin
         err = config_error()
         if err:
             return jsonify({"status": "error", "message": err}), 503
-        return jsonify({"status": "ok"})
+        try:
+            supabase_admin.table("schools").select("id").limit(1).execute()
+            return jsonify({"status": "ok"})
+        except Exception as exc:
+            return jsonify({"status": "error", "message": str(exc)}), 503
 
     return app
 
 
-app = create_app()
+def _create_fallback_app(error_text: str) -> Flask:
+    fallback = Flask(__name__)
+
+    @fallback.route("/api/health")
+    def health_failed():
+        return jsonify({
+            "status": "startup_failed",
+            "message": "The Flask app failed to load. See detail for the traceback.",
+            "detail": error_text,
+        }), 503
+
+    @fallback.route("/", defaults={"path": ""})
+    @fallback.route("/<path:path>")
+    def unavailable(path):
+        if path == "api/health":
+            return health_failed()
+        return (
+            "<h1>App failed to start</h1>"
+            "<p>Open <a href='/api/health'>/api/health</a> to see the error detail.</p>"
+            "<p>Usually this means missing Vercel environment variables or a bad dependency.</p>",
+            503,
+            {"Content-Type": "text/html"},
+        )
+
+    return fallback
+
+
+try:
+    app = create_app()
+except Exception:
+    _startup_error = traceback.format_exc()
+    app = _create_fallback_app(_startup_error)
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    if _startup_error:
+        print(_startup_error)
+    else:
+        app.run(debug=True)
