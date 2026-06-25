@@ -10,9 +10,9 @@ PUBLIC_STATIC = ROOT / "public" / "static"
 def main():
     PUBLIC_STATIC.parent.mkdir(parents=True, exist_ok=True)
     if PUBLIC_STATIC.exists():
-        shutil.rmtree(PUBLIC_STATIC)
+        shutil.rmtree(PUBLIC_STATIC, ignore_errors=True)
     if STATIC.is_dir():
-        shutil.copytree(STATIC, PUBLIC_STATIC)
+        shutil.copytree(STATIC, PUBLIC_STATIC, dirs_exist_ok=True)
         print(f"Copied {STATIC} -> {PUBLIC_STATIC}")
     else:
         print("No static/ directory found; skipping.")
