@@ -1,0 +1,166 @@
+.schedule-slot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+.schedule-time { font-size: 13px; color: var(--gray-500); min-width: 0; }
+.pending-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+.tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.tab-link {
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  background: var(--gray-100);
+  color: var(--gray-600);
+  font-weight: 600;
+  font-size: 13px;
+}
+.tab-link.active { background: var(--blue); color: white; }
+.subjects-grid, .materials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+.subject-card, .material-card {
+  background: var(--gray-100);
+  border-radius: var(--radius);
+  padding: 18px;
+  border: 1px solid transparent;
+  min-width: 0;
+}
+.subject-card:hover, .material-card:hover {
+  border-color: var(--blue);
+  background: white;
+  box-shadow: var(--shadow);
+}
+.announcement-item, .notification-item {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+.announcement-title, .notification-subject { font-weight: 700; color: var(--navy); }
+.announcement-body, .notification-message { font-size: 14px; color: var(--gray-600); margin: 4px 0; word-break: break-word; }
+.announcement-date, .notification-date { font-size: 12px; color: var(--gray-400); }
+.message-thread { padding: 16px 0; border-bottom: 1px solid var(--gray-200); }
+.message-meta { font-size: 13px; color: var(--text-light); margin: 4px 0 8px; }
+.admin-reply {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--gray-100);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--blue);
+}
+.portal-form .form-row { margin-bottom: 16px; }
+.badge-overdue { background: #FEE2E2; color: #991B1B; }
+.badge-submitted { background: #D1FAE5; color: #065F46; }
+.badge-open { background: #FEF3C7; color: #92400E; }
+.badge-replied { background: #D1FAE5; color: #065F46; }
+.badge-pending { background: #FEF3C7; color: #92400E; }
+.badge-paid { background: #D1FAE5; color: #065F46; }
+
+.attendance-filter-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+
+.attendance-filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 12px;
+}
+
+.attendance-filter-form .filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.attendance-filter-form .field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.attendance-filter-form .form-input {
+  height: 36px;
+  padding: 0 10px;
+  font-size: 13px;
+  flex: none;
+  width: auto;
+  min-width: 0;
+}
+
+.attendance-filter-form .filter-field--month .form-input {
+  width: 108px;
+}
+
+.attendance-filter-form .filter-field--year .form-input {
+  width: 84px;
+}
+
+.attendance-filter-form .filter-field--date .form-input {
+  width: 152px;
+}
+
+.attendance-filter-form .action-btn {
+  height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .attendance-filter-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: end;
+  }
+
+  .attendance-filter-form .filter-field--date,
+  .attendance-filter-form .filter-field--month,
+  .attendance-filter-form .filter-field--year {
+    grid-column: span 1;
+  }
+
+  .attendance-filter-form .filter-field--date {
+    grid-column: 1 / -1;
+  }
+
+  .attendance-filter-form .filter-field .form-input {
+    width: 100%;
+  }
+
+  .attendance-filter-form .action-btn {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .subjects-grid, .materials-grid {
+    grid-template-columns: 1fr;
+  }
+}

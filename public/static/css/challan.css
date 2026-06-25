@@ -1,0 +1,228 @@
+/* Fee challan — 3-copy formal layout (matches school bank challan) */
+
+.challan-print-page .challan-page-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+}
+
+.challan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.challan-void-banner {
+  background: #FEE2E2;
+  color: #991B1B;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.challan-document {
+  position: relative;
+  border: 2px solid #1e3a5f;
+  border-radius: 4px;
+  background: #fff;
+  padding: 16px 12px 12px;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+}
+
+.challan-copies {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border-bottom: 1px solid #cbd5e1;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+
+.challan-copy {
+  padding: 0 10px;
+  border-right: 1px dashed #94a3b8;
+}
+.challan-copy:last-child { border-right: none; }
+
+.challan-school {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1e3a5f;
+  text-align: center;
+  margin: 0 0 4px;
+  line-height: 1.25;
+}
+
+.challan-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1e3a5f;
+  text-align: center;
+  margin: 0 0 12px;
+}
+
+.challan-meta {
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+}
+.challan-meta div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.challan-meta dt {
+  font-weight: 700;
+  color: #334155;
+  margin: 0;
+}
+.challan-meta dd {
+  margin: 0;
+  text-align: right;
+  color: #0f172a;
+}
+
+.challan-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.7rem;
+  margin-bottom: 10px;
+}
+.challan-table th {
+  background: #e8eef4;
+  color: #1e3a5f;
+  font-weight: 700;
+  padding: 5px 6px;
+  border: 1px solid #cbd5e1;
+  text-align: left;
+}
+.challan-table th:last-child { text-align: right; }
+.challan-table td {
+  padding: 4px 6px;
+  border: 1px solid #e2e8f0;
+  border-top: none;
+}
+.challan-table td:last-child { text-align: right; }
+.challan-total-row td {
+  border-top: 2px solid #94a3b8;
+  background: #f8fafc;
+}
+
+.challan-signatures {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.challan-copy-label {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #1e3a5f;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.challan-terms {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+.challan-terms h3 {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #1e3a5f;
+  margin: 0 0 8px;
+}
+.challan-terms ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.72rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.challan-void-stamp {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-18deg);
+  font-size: 3rem;
+  font-weight: 900;
+  color: rgba(220, 38, 38, 0.35);
+  pointer-events: none;
+  letter-spacing: 0.15em;
+}
+
+/* Mobile: stack copies vertically */
+@media (max-width: 900px) {
+  .challan-copies {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .challan-copy {
+    border-right: none;
+    border-bottom: 1px dashed #94a3b8;
+    padding-bottom: 16px;
+  }
+  .challan-copy:last-child { border-bottom: none; padding-bottom: 0; }
+  .challan-school { font-size: 1.15rem; }
+  .challan-meta, .challan-table { font-size: 0.8rem; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  .challan-print-page .challan-page-wrap { max-width: 100%; padding: 0; margin: 0; }
+  .challan-document { box-shadow: none; border-width: 1px; }
+  .challan-copies { grid-template-columns: repeat(3, 1fr); }
+  .challan-copy { border-right: 1px dashed #999; }
+  @page { size: A4 landscape; margin: 8mm; }
+}
+
+/* Admin challan list cards */
+.challan-class-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.challan-class-card {
+  background: #fff;
+  border: 1px solid var(--gray-200, #e2e8f0);
+  border-radius: 12px;
+  padding: 14px 16px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.challan-class-card:hover, .challan-class-card.active {
+  border-color: var(--blue, #2563eb);
+  box-shadow: 0 2px 12px rgba(37, 99, 235, 0.12);
+}
+.challan-class-card .cc-label { font-weight: 700; font-size: 14px; color: var(--navy, #1e3a5f); }
+.challan-class-card .cc-stats { font-size: 12px; color: var(--gray-500, #64748b); margin-top: 6px; }
+
+.fee-challan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.table-card-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 640px) {
+  .data-table { font-size: 13px; }
+  .data-table th, .data-table td { padding: 10px 8px; }
+  .fee-challan-actions .action-btn { font-size: 12px; padding: 6px 10px; }
+}
