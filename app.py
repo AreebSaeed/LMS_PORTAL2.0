@@ -2,14 +2,11 @@ from flask import Flask, redirect, url_for, session, jsonify
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import traceback
-from typing import Optional
 
 from config import Config
 
-_startup_error: Optional[str] = None
 
-
-def create_app():
+def _build_app():
     from controllers.auth_controller import auth_bp
     from controllers.dashboard_controller import dashboard_bp
     from controllers.student_controller import student_bp
@@ -138,15 +135,17 @@ def _create_fallback_app(error_text: str) -> Flask:
     return fallback
 
 
-try:
-    app = create_app()
-except Exception:
-    _startup_error = traceback.format_exc()
-    app = _create_fallback_app(_startup_error)
+def create_app():
+    """Factory used by Vercel and local dev; always returns a Flask instance."""
+    try:
+        return _build_app()
+    except Exception:
+        return _create_fallback_app(traceback.format_exc())
+
+
+# Vercel requires a module-level `app` (not inside try/except).
+app = create_app()
 
 
 if __name__ == "__main__":
-    if _startup_error:
-        print(_startup_error)
-    else:
-        app.run(debug=True)
+    app.run(debug=True)
