@@ -1,4 +1,5 @@
-flask
+flask>=3.0
 python-dotenv
-supabase
+supabase>=2.4
 fpdf2
+httpx>=0.27

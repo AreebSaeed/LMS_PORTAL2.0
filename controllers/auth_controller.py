@@ -107,6 +107,15 @@ def login():
 
             return redirect(url_for("dashboard.index"))
 
+        except RuntimeError as exc:
+            flash(str(exc), "error")
+            return render_template(
+                "auth/login.html",
+                login_roles=LOGIN_ROLES,
+                manual_role=manual_role,
+                selected_role=selected_role,
+                login_id=identifier,
+            )
         except Exception:
             flash(
                 "Incorrect login details. Please re-enter your credentials.",

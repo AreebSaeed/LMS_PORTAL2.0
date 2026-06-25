@@ -1,4 +1,6 @@
-from flask import Flask, redirect, url_for, session
+from flask import Flask, redirect, url_for, session, jsonify
+from werkzeug.middleware.proxy_fix import ProxyFix
+import os
 from config import Config
 from controllers.auth_controller import auth_bp
 from controllers.dashboard_controller import dashboard_bp
@@ -23,6 +25,14 @@ from models.parent_message_model import count_unread_parent_message_notification
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    if os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV"):
+        app.config.update(
+            SESSION_COOKIE_SECURE=True,
+            SESSION_COOKIE_HTTPONLY=True,
+            SESSION_COOKIE_SAMESITE="Lax",
+        )
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     @app.context_processor
     def inject_announcement_bell():
@@ -76,6 +86,14 @@ def create_app():
     @app.route("/")
     def index():
         return redirect(url_for("auth.login"))
+
+    @app.route("/api/health")
+    def health():
+        from models.supabase_client import config_error
+        err = config_error()
+        if err:
+            return jsonify({"status": "error", "message": err}), 503
+        return jsonify({"status": "ok"})
 
     return app
 
